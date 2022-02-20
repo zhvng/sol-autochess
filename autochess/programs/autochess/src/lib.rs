@@ -1,14 +1,14 @@
 pub mod state;
 
 use anchor_lang::{prelude::*};
-use state::accounts::Game;
+use state::game::Game;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
 pub mod autochess {
 
-    use crate::state::accounts::{validate_reveal, Player};
+    use crate::state::{game::{validate_reveal}, entities::Controller};
 
     use super::*;
     pub fn create_game(ctx: Context<CreateGame>, commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
@@ -84,11 +84,10 @@ pub mod autochess {
 
     pub fn place_piece(ctx: Context<PlacePiece>, x: u16, y: u16) -> ProgramResult {
         let game = &mut ctx.accounts.game;
-        msg!("{:?}", game.i_pieces);
         let player_type = if game.initializer == *ctx.accounts.invoker.key {
-            Player::Initializer
+            Controller::Initializer
         } else {
-            Player::Opponent
+            Controller::Opponent
         };
 
         let placed = game.place_piece(player_type, x, y, 1);
@@ -98,7 +97,7 @@ pub mod autochess {
         Ok(())
     }
 
-    pub fn crank_game(ctx: Context<PlacePiece>) -> ProgramResult {
+    pub fn crank_game(ctx: Context<CrankGame>) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         game.step();
         Ok(())
@@ -150,6 +149,18 @@ pub struct PlacePiece<'info> {
     game: Account<'info, Game>,
     invoker: Signer<'info>,
 }
+
+#[derive(Accounts)]
+pub struct CrankGame<'info> {
+    #[account(
+        mut,
+        constraint = game.state == 2 &&
+            (game.initializer == *invoker.key || game.opponent == *invoker.key),
+    )]
+    game: Account<'info, Game>,
+    invoker: Signer<'info>,
+}
+
 
 #[error]
 pub enum ErrorCode {

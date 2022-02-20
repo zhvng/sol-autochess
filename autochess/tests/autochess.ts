@@ -5,12 +5,11 @@ import { Autochess } from '../target/types/autochess';
 import CryptoJS from 'crypto-js';
 import assert from 'assert';
 
+const program = anchor.workspace.Autochess as Program<Autochess>;
 describe('autochess', async () => {
 
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.Provider.env());
-
-  const program = anchor.workspace.Autochess as Program<Autochess>;
 
   const opponent = anchor.web3.Keypair.generate();
   const gamePDA = (await anchor.web3.PublicKey.findProgramAddress(
@@ -20,6 +19,7 @@ describe('autochess', async () => {
     ],
     program.programId
   ))[0];
+  console.log(gamePDA)
   const initializerReveal1 = hash('random1');
   const initializerSecret1 = hash('secret1');
   const initializerCommitment1Unhashed = Buffer.from([...Buffer.from(initializerReveal1, 'hex'), ...Buffer.from(initializerSecret1, 'hex')]).toString('hex');
@@ -106,13 +106,36 @@ describe('autochess', async () => {
   });
 
   it('place piece 2', async () => {
-    const tx = await program.rpc.placePiece(1, 1, {
+    const tx = await program.rpc.placePiece(700, 700, {
       accounts: {
         game: gamePDA,
-        invoker: program.provider.wallet.publicKey,
-      }
+        invoker: opponent.publicKey,
+      },
+      signers: [opponent],
     });
     const account = await program.account.game.fetch(gamePDA);
     console.log("pda account", account);
+    console.log(account.entities.all);
   });
+
+  it('crank', async ()=>{
+    await program.rpc.crankGame({
+      accounts: {
+        game: gamePDA,
+        invoker: opponent.publicKey,
+      },
+      signers: [opponent],
+    });
+
+    await program.rpc.crankGame({
+      accounts: {
+        game: gamePDA,
+        invoker: opponent.publicKey,
+      },
+      signers: [opponent],
+    });
+    const account = await program.account.game.fetch(gamePDA);
+    console.log("pda account", account);
+    console.log(account.entities.all);
+  })
 });

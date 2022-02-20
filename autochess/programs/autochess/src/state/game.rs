@@ -1,6 +1,8 @@
-use anchor_lang::{solana_program::hash::{Hash, extend_and_hash}, prelude::*};
+use anchor_lang::{solana_program::{hash::{Hash, extend_and_hash}, loader_instruction::LoaderInstruction}, prelude::*};
 
-use crate::state::units::UnitState;
+use crate::state::entities;
+
+use super::{utils, entities::{Entity, Entities}};
 
 #[account]
 #[derive(Default)]
@@ -27,26 +29,9 @@ pub struct Game {
     pub reveal_1: Option<[u8; 32]>,
     pub reveal_2: Option<[u8; 32]>,
 
-    pub i_pieces: Vec<Piece>,
-    pub o_pieces: Vec<Piece>,
-}
+    pub entities: Entities,
 
-#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
-pub struct Piece {
-    /// Speed multiplier where 100 = 1x
-    pub speed_multiplier: u16,
-    pub x: u16, // 800 x 800
-    pub y: u16,
-    /// Type of unit this is
-    /// 1 - wolf (melee)
-    /// 2 - ape (ranged)
-    pub unit_type: u16, 
-    pub state: UnitState,
-}
-#[derive(Debug, PartialEq)]
-pub enum Player {
-    Opponent,
-    Initializer,
+    pub tick: u64,
 }
 
 impl Game {
@@ -54,36 +39,37 @@ impl Game {
         self.i_has_revealed = false;
         self.o_has_revealed = false;
         self.state = 0;
+        self.tick = 0;
+        self.entities = entities::Entities {
+            all: Vec::new(),
+            counter: 0,
+        }
     }
 
-    pub fn load_pieces(&self) {
-        
-    }
-
-    pub fn place_piece(&mut self, player: Player, x: u16, y: u16, unit_type: u16) -> bool {
-        let piece_array = if player == Player::Opponent {
-            &mut self.o_pieces
-        } else {
-            &mut self.i_pieces
-        };
-        msg!("{:?}", piece_array);
-        piece_array.push(Piece {
-            speed_multiplier: 100,
-            x,
-            y,
-            unit_type,
-            state: UnitState::Idle,
-        });
-        msg!("{:?}", piece_array);
+    pub fn place_piece(&mut self, player: entities::Controller, x: u16, y: u16, unit_type: u16) -> bool {
+        msg!("{:?}", self.entities);
+        self.entities.create(player, x, y, unit_type);
         return true;
     }
 
     pub fn step(&mut self) {
-        for piece in &mut self.i_pieces {
-            piece.x +=1;
-            piece.y +=1 ;
+        let all_entities = &self.entities.clone();
+        for unit in &mut self.entities.all {
+            if unit.owner != entities::Controller::Contract {
+                match unit.state {
+                    entities::EntityState::Idle => {
+                        unit.walk_or_aa(all_entities);
+                    },
+                    entities::EntityState::Moving{to} => {
+                        unit.position = to;
+                        unit.walk_or_aa(all_entities);
+                    },
+                    other=>{}
+                }
+            }
         }
     }
+    
 }
 
 pub fn validate_reveal(stored_hash: &[u8; 32], reveal: &[u8; 32], secret: &[u8; 32]) -> bool {
