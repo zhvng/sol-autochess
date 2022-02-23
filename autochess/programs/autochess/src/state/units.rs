@@ -1,17 +1,56 @@
 use anchor_lang::{prelude::*};
+use std::collections::BTreeMap;
 
 use super::utils::Location;
 
-pub fn get_unit_array() -> Vec<Unit> {
-    vec! [
+pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
+    let mut units = BTreeMap::new();
+    const TICKS_PER_SECOND: u16 = 5;
+    units.insert(
+        UnitType::Wolf,
         Unit {
-            movement_speed: 1,
-            attack_duration: 2,
-            attack_range: 1,
-        }
-    ]
+            movement_speed: 300 / TICKS_PER_SECOND, // per tick
+            attack_duration: 3, // in ticks
+            attack_range: 100,
+            attack_damage: 20,
+            starting_health: 100,
+        },
+    );
+    units.insert(
+        UnitType::Bear,
+        Unit {
+            movement_speed: 150 / TICKS_PER_SECOND, // per tick
+            attack_duration: 4,
+            attack_range: 100,
+            attack_damage: 10,
+            starting_health: 200,
+        },
+    );
+    units.insert(
+        UnitType::Bull,
+        Unit {
+            movement_speed: 200 / TICKS_PER_SECOND, // per tick
+            attack_duration: 7,
+            attack_range: 150,
+            attack_damage: 30,
+            starting_health: 150,
+        },
+    );
+    units
 }
 
+#[derive(Debug, Ord, Eq, PartialOrd, PartialEq, AnchorDeserialize, AnchorSerialize, Clone, Copy)]
+pub enum UnitType {
+    Wolf,
+    Bull,
+    Bear
+}
+
+impl Default for UnitType {
+    fn default() -> UnitType {
+        UnitType::Wolf
+    }
+}
 pub enum AttackType {
     Melee,
     Ranged{speed: u16},
@@ -21,9 +60,11 @@ pub fn add(a: u64, b: u64) -> u64 {
 }
 
 pub struct Unit {
-    movement_speed: u16,
-    attack_duration: u16,
-    attack_range: u16,
+    pub movement_speed: u16,
+    pub attack_duration: u16,
+    pub attack_range: u16,
+    pub attack_damage: u16,
+    pub starting_health: u16,
 }
 
 pub trait UnitTrait {

@@ -34,6 +34,12 @@ describe('autochess', async () => {
   console.log(initializerCommitment1);
   console.log(opponentCommitment1);
 
+  const UnitType = {
+    Wolf: { wolf: {} },
+    Bear: { bear: {} },
+    Bull: { bull: {} },
+  };
+
   it('Is initialized!', async () => {
     // Add your test here.
     const tx = await program.rpc.createGame(initializerCommitment1, [...Buffer.from(hash(initializerReveal2), 'hex')], {
@@ -95,7 +101,19 @@ describe('autochess', async () => {
   });
 
   it('place piece', async () => {
-    const tx = await program.rpc.placePiece(1, 1, {
+    const tx = await program.rpc.placePiece(1, 1, UnitType.Wolf, {
+      accounts: {
+        game: gamePDA,
+        invoker: program.provider.wallet.publicKey,
+      }
+    });
+    await program.rpc.placePiece(1, 2, UnitType.Wolf, {
+      accounts: {
+        game: gamePDA,
+        invoker: program.provider.wallet.publicKey,
+      }
+    });
+    await program.rpc.placePiece(1, 100, UnitType.Wolf, {
       accounts: {
         game: gamePDA,
         invoker: program.provider.wallet.publicKey,
@@ -106,7 +124,21 @@ describe('autochess', async () => {
   });
 
   it('place piece 2', async () => {
-    const tx = await program.rpc.placePiece(700, 700, {
+    const tx = await program.rpc.placePiece(700, 700, UnitType.Wolf, {
+      accounts: {
+        game: gamePDA,
+        invoker: opponent.publicKey,
+      },
+      signers: [opponent],
+    });
+    await program.rpc.placePiece(700, 600, UnitType.Bear, {
+      accounts: {
+        game: gamePDA,
+        invoker: opponent.publicKey,
+      },
+      signers: [opponent],
+    });
+    await program.rpc.placePiece(700, 500, UnitType.Bull, {
       accounts: {
         game: gamePDA,
         invoker: opponent.publicKey,
@@ -119,15 +151,53 @@ describe('autochess', async () => {
   });
 
   it('crank', async ()=>{
-    await program.rpc.crankGame({
+    await program.rpc.crankGame(4, {
       accounts: {
         game: gamePDA,
         invoker: opponent.publicKey,
       },
       signers: [opponent],
     });
+    const account1 = await program.account.game.fetch(gamePDA);
+    console.log("pda account", account1);
+    console.log(JSON.stringify(account1.entities.all, null, 2));
 
-    await program.rpc.crankGame({
+    await program.rpc.crankGame(4, {
+      accounts: {
+        game: gamePDA,
+        invoker: opponent.publicKey,
+      },
+      signers: [opponent],
+    });
+    await program.rpc.crankGame(4, {
+      accounts: {
+        game: gamePDA,
+        invoker: opponent.publicKey,
+      },
+      signers: [opponent],
+    });
+    await program.rpc.crankGame(4, {
+      accounts: {
+        game: gamePDA,
+        invoker: opponent.publicKey,
+      },
+      signers: [opponent],
+    });
+    await program.rpc.crankGame(4, {
+      accounts: {
+        game: gamePDA,
+        invoker: opponent.publicKey,
+      },
+      signers: [opponent],
+    });
+    await program.rpc.crankGame(4, {
+      accounts: {
+        game: gamePDA,
+        invoker: opponent.publicKey,
+      },
+      signers: [opponent],
+    });
+    await program.rpc.crankGame(4, {
       accounts: {
         game: gamePDA,
         invoker: opponent.publicKey,
@@ -136,6 +206,6 @@ describe('autochess', async () => {
     });
     const account = await program.account.game.fetch(gamePDA);
     console.log("pda account", account);
-    console.log(account.entities.all);
-  })
+    console.log(JSON.stringify(account.entities.all, null, 2));
+  });
 });
