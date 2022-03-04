@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fs::OpenOptions};
 
 use anchor_lang::{solana_program::{hash::{Hash, hash, extend_and_hash}, loader_instruction::LoaderInstruction, log::sol_log_compute_units}, prelude::*};
 
@@ -6,8 +6,10 @@ use crate::state::entities;
 
 use super::{utils, entities::{Entity, Entities}, units};
 
+use serde;
+
 #[account]
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct Game {
     pub initializer: Pubkey,
     pub opponent: Pubkey,
@@ -47,6 +49,15 @@ enum Apply {
 }
 
 impl Game {
+    /// initialize state for the client wasm
+    pub fn new_client() -> Game {
+        let mut game = Game { 
+            ..Default::default()
+        };
+        game.initialize_default();
+        game
+    }
+
     pub fn initialize_default(&mut self) {
         self.i_has_revealed = false;
         self.o_has_revealed = false;
@@ -59,10 +70,35 @@ impl Game {
         }
     }
 
-    pub fn place_piece(&mut self, player: entities::Controller, x: u16, y: u16, unit_type: units::UnitType) -> bool {
+    pub fn place_piece(&mut self, player: entities::Controller, grid_x: u16, grid_y: u16, unit_type: units::UnitType) -> Option<u16> {
         msg!("{:?}", self.entities);
-        self.entities.create(player, x, y, unit_type);
-        return true;
+
+        let x = grid_x * 100 + 50;
+        let y = grid_y * 100 + 50;
+
+        // must place in bounds
+        if x > 800 || y > 800 {
+            return None;
+        }
+        // must place on your side
+        match player {
+            entities::Controller::Initializer => {
+                if y > 300 {
+                    return None;
+                }
+            },
+            entities::Controller::Opponent => {
+                if y < 500 {
+                    return None;
+                }
+            },
+            _other => {
+                return None;
+            }
+        }
+
+        let id = self.entities.create(player, x, y, unit_type);
+        return Some(id);
     }
 
     fn get_random_u8(&mut self) -> u8 {

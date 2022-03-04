@@ -3,14 +3,15 @@ use std::collections::BTreeMap;
 use anchor_lang::{prelude::*, solana_program::log::sol_log_compute_units};
 use super::{utils::Location, units::{UnitType, Unit, self}};
 
+use serde;
 
-#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
+#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Entities {
     pub all: Vec<Entity>,
     pub counter: u16,
 }
 
-#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone, Copy)]
+#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Entity {
     pub id: u16,
     /// owner of the piece
@@ -28,7 +29,7 @@ pub struct Entity {
     pub state: EntityState,
 }
 
-#[derive(Debug, PartialEq, Clone, AnchorSerialize, AnchorDeserialize, Copy)]
+#[derive(Debug, PartialEq, Clone, AnchorSerialize, AnchorDeserialize, Copy, serde::Serialize, serde::Deserialize)]
 pub enum EntityState {
     Idle,
     Moving{to: Location},
@@ -38,7 +39,7 @@ pub enum EntityState {
     Ult{progress: u16, cast_on: u16, release_on: u16},
 }
 /// Enum denoting owner of an entity
-#[derive(Debug, PartialEq, AnchorDeserialize, AnchorSerialize, Clone, Copy)]
+#[derive(Debug, PartialEq, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum Controller {
     Opponent,
     Initializer,
@@ -63,16 +64,8 @@ impl Entity {
             Some(id) => {
                 let entity = all_entities.get_by_id(id).unwrap();
                 if entity.state == EntityState::Dead {
-                    let new_target = all_entities.find_closest_entity(&self.position, enemy);
-                    match new_target {
-                        Some(t) => {
-                            self.target = Some(t.entity.id);
-                            Some(t)
-                        },
-                        None => {
-                            None
-                        }
-                    }
+                    self.target = None;
+                    None
                 } else {
                     Some(EntityResult {
                         entity: &entity,
@@ -96,15 +89,17 @@ impl Entity {
                     msg!("{:?} {:?}", self.owner, result.entity.owner);
                     self.state = EntityState::Attack{progress: 0, attack_on: attack_duration, target_id:result.entity.id};
                 } else {
-                    let target = Location {
-                        x: (self.position.x as f32 + (result.entity.position.x as f32 - self.position.x as f32) /result.distance as f32 * movement_speed as f32) as u16,
-                        y: (self.position.y as f32 + (result.entity.position.y as f32 - self.position.y as f32) /result.distance as f32 * movement_speed as f32) as u16,
-                    };
+                    let target = self.position.move_towards(&result.entity.position, result.distance, movement_speed);
                     self.state = EntityState::Moving{to: target};
+                }
+
+                if self.target == None {
+                    self.target = Some(result.entity.id);
                 }
             },
             None => {
-                // GAME SHOULD BE WON
+                // No target for this turn, do nothing
+                self.state = EntityState::Idle;
             }
         }
         sol_log_compute_units();
@@ -112,11 +107,12 @@ impl Entity {
 }
 
 impl Entities {
-    pub fn create(&mut self, player: Controller, x: u16, y: u16, unit_type: UnitType) {
+    pub fn create(&mut self, player: Controller, x: u16, y: u16, unit_type: UnitType) -> u16 {
         let unit_map = units::get_unit_map();
         let unit = unit_map.get(&unit_type).unwrap();
+        let id = self.counter;
         self.all.push(Entity {
-            id: self.counter,
+            id,
             owner: player,
             target: None,
             speed_multiplier: 100,
@@ -126,6 +122,7 @@ impl Entities {
             state: EntityState::Idle,
         });
         self.counter += 1;
+        return id;
     }
     pub fn get_by_id_mut(&mut self, id: u16) -> Option<&mut Entity> {
         for entity in &mut self.all {

@@ -86,7 +86,7 @@ pub mod autochess {
         Ok(())
     }
 
-    pub fn place_piece(ctx: Context<PlacePiece>, x: u16, y: u16, unit_type: UnitType) -> ProgramResult {
+    pub fn place_piece(ctx: Context<PlacePiece>, grid_x: u16, grid_y: u16, unit_type: UnitType) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         let player_type = if game.initializer == *ctx.accounts.invoker.key {
             Controller::Initializer
@@ -94,8 +94,8 @@ pub mod autochess {
             Controller::Opponent
         };
 
-        let placed = game.place_piece(player_type, x, y, unit_type);
-        if placed == false {
+        let placed = game.place_piece(player_type, grid_x, grid_y, unit_type);
+        if placed == None {
             return Err(ErrorCode::Hello.into());
         }
         Ok(())

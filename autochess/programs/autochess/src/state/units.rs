@@ -9,7 +9,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
     units.insert(
         UnitType::Wolf,
         Unit {
-            movement_speed: 300 / TICKS_PER_SECOND, // per tick
+            movement_speed: 200 / TICKS_PER_SECOND, // per tick
             attack_duration: 3, // in ticks
             attack_range: 100,
             attack_damage: 20,
@@ -19,7 +19,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
     units.insert(
         UnitType::Bear,
         Unit {
-            movement_speed: 150 / TICKS_PER_SECOND, // per tick
+            movement_speed: 75 / TICKS_PER_SECOND, // per tick
             attack_duration: 4,
             attack_range: 100,
             attack_damage: 10,
@@ -29,7 +29,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
     units.insert(
         UnitType::Bull,
         Unit {
-            movement_speed: 200 / TICKS_PER_SECOND, // per tick
+            movement_speed: 125 / TICKS_PER_SECOND, // per tick
             attack_duration: 7,
             attack_range: 150,
             attack_damage: 30,
@@ -39,7 +39,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
     units
 }
 
-#[derive(Debug, Ord, Eq, PartialOrd, PartialEq, AnchorDeserialize, AnchorSerialize, Clone, Copy)]
+#[derive(Debug, Ord, Eq, PartialOrd, PartialEq, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum UnitType {
     Wolf,
     Bull,

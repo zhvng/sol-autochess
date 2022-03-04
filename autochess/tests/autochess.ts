@@ -113,7 +113,7 @@ describe('autochess', async () => {
         invoker: program.provider.wallet.publicKey,
       }
     });
-    await program.rpc.placePiece(1, 100, UnitType.Wolf, {
+    await program.rpc.placePiece(0, 1, UnitType.Wolf, {
       accounts: {
         game: gamePDA,
         invoker: program.provider.wallet.publicKey,
@@ -124,21 +124,21 @@ describe('autochess', async () => {
   });
 
   it('place piece 2', async () => {
-    const tx = await program.rpc.placePiece(700, 700, UnitType.Wolf, {
+    const tx = await program.rpc.placePiece(7, 7, UnitType.Wolf, {
       accounts: {
         game: gamePDA,
         invoker: opponent.publicKey,
       },
       signers: [opponent],
     });
-    await program.rpc.placePiece(700, 600, UnitType.Bear, {
+    await program.rpc.placePiece(6, 7, UnitType.Bear, {
       accounts: {
         game: gamePDA,
         invoker: opponent.publicKey,
       },
       signers: [opponent],
     });
-    await program.rpc.placePiece(700, 500, UnitType.Bull, {
+    await program.rpc.placePiece(3, 5, UnitType.Bull, {
       accounts: {
         game: gamePDA,
         invoker: opponent.publicKey,

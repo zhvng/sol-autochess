@@ -1,0 +1,13 @@
+{
+  "name": "wasm-client",
+  "version": "1.0.0",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "wasm-pack build --target web && sed -i '' 's/export function init/export function initWasm/g' ./pkg/wasm_client.js "
+  },
+  "author": "",
+  "license": "ISC"
+}
