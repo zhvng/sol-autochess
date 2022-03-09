@@ -9,6 +9,18 @@ pub struct Projectiles {
     pub all: Vec<Projectile>,
 }
 
+impl Projectiles {
+    pub fn get(&mut self) {
+        for projectile in &mut self.all {
+            match projectile {
+                Projectile::RangedAttack(p) => p.step(),
+                Projectile::Explosion(p) => p.step(),
+                Projectile::None => {},
+            }
+        }
+    }
+}
+
 // #[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone, Copy)]
 // pub struct Projectile {
 //     position: Location,
@@ -20,7 +32,7 @@ pub struct Projectiles {
 pub enum Projectile {
     None,
     RangedAttack(RangedAttack),
-
+    Explosion(Explosion),
 }
 
 pub trait ProjectileTrait {
@@ -33,16 +45,26 @@ pub struct RangedAttack {
     pub target_id: u16,
 }
 
-#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
-pub struct StaticTarget {
-    pub position: Location,
-    pub target: Location,
-}
-
 impl ProjectileTrait for RangedAttack {
     fn step(&mut self) {
         self.position.x = self.position.x + 1 ;
     }
+}
+#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
+pub struct Explosion {
+    pub position: Location,
+    pub target_id: u16,
+}
+impl ProjectileTrait for Explosion {
+    fn step(&mut self) {
+        self.position.x = self.position.x + 21 ;
+    }
+}
+
+#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
+pub struct StaticTarget {
+    pub position: Location,
+    pub target: Location,
 }
 
 impl Default for Projectile {

@@ -10,102 +10,6 @@ pub struct Entities {
     pub all: Vec<Entity>,
     pub counter: u16,
 }
-
-#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub struct Entity {
-    pub id: u16,
-    /// owner of the piece
-    pub owner: Controller,
-
-    /// id of the focused target
-    pub target: Option<u16>,
-
-    /// Speed multiplier where 100 = 1x
-    pub speed_multiplier: u16,
-    pub position: Location, // 800 x 800
-    pub health: u16,
-    /// Type of unit this is
-    pub unit_type: UnitType, 
-    pub state: EntityState,
-}
-
-#[derive(Debug, PartialEq, Clone, AnchorSerialize, AnchorDeserialize, Copy, serde::Serialize, serde::Deserialize)]
-pub enum EntityState {
-    Idle,
-    Moving{to: Location},
-    Dead,
-    Attack{progress: u16, attack_on: u16, target_id: u16},
-    Ability{progress: u16, cast_on: u16, release_on: u16},
-    Ult{progress: u16, cast_on: u16, release_on: u16},
-}
-/// Enum denoting owner of an entity
-#[derive(Debug, PartialEq, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub enum Controller {
-    Opponent,
-    Initializer,
-    Contract,
-    Graveyard,
-}
-
-#[derive(Debug, AnchorDeserialize, AnchorSerialize, Clone, Copy)]
-pub struct EntityResult<'a> {
-    pub entity: &'a Entity,
-    pub distance: u16,
-}
-
-impl Entity {
-    pub fn walk_or_aa(&mut self, all_entities: &Entities, unit_map: &BTreeMap<UnitType, Unit>) {
-        let enemy = if self.owner == Controller::Initializer {
-            Controller::Opponent
-        } else {
-            Controller::Initializer
-        };
-        let target_entity = match self.target {
-            Some(id) => {
-                let entity = all_entities.get_by_id(id).unwrap();
-                if entity.state == EntityState::Dead {
-                    self.target = None;
-                    None
-                } else {
-                    Some(EntityResult {
-                        entity: &entity,
-                        distance: self.position.distance(&entity.position),
-                    })
-                }
-            },
-            None => {
-                all_entities.find_closest_entity(&self.position, enemy)
-            }
-        };
-        match target_entity {
-            Some(result) => {
-                let unit = unit_map.get(&self.unit_type).unwrap();
-                let aa_range: u16 = unit.attack_range;
-                let movement_speed: u16 = unit.movement_speed;
-                let attack_duration: u16 = unit.attack_duration;
-
-                if result.distance <= aa_range {
-                    // ATTACK
-                    msg!("{:?} {:?}", self.owner, result.entity.owner);
-                    self.state = EntityState::Attack{progress: 0, attack_on: attack_duration, target_id:result.entity.id};
-                } else {
-                    let target = self.position.move_towards(&result.entity.position, result.distance, movement_speed);
-                    self.state = EntityState::Moving{to: target};
-                }
-
-                if self.target == None {
-                    self.target = Some(result.entity.id);
-                }
-            },
-            None => {
-                // No target for this turn, do nothing
-                self.state = EntityState::Idle;
-            }
-        }
-        sol_log_compute_units();
-    }
-}
-
 impl Entities {
     pub fn create(&mut self, player: Controller, x: u16, y: u16, unit_type: UnitType) -> u16 {
         let unit_map = units::get_unit_map();
@@ -180,6 +84,101 @@ impl Entities {
         entities
     }
 }
+
+#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct Entity {
+    pub id: u16,
+    /// owner of the piece
+    pub owner: Controller,
+
+    /// id of the focused target
+    pub target: Option<u16>,
+
+    /// Speed multiplier where 100 = 1x
+    pub speed_multiplier: u16,
+    pub position: Location, // 800 x 800
+    pub health: u16,
+    /// Type of unit this is
+    pub unit_type: UnitType, 
+    pub state: EntityState,
+}
+impl Entity {
+    pub fn walk_or_aa(&mut self, all_entities: &Entities, unit_map: &BTreeMap<UnitType, Unit>) {
+        let enemy = if self.owner == Controller::Initializer {
+            Controller::Opponent
+        } else {
+            Controller::Initializer
+        };
+        let target_entity = match self.target {
+            Some(id) => {
+                let entity = all_entities.get_by_id(id).unwrap();
+                if entity.state == EntityState::Dead {
+                    self.target = None;
+                    None
+                } else {
+                    Some(EntityResult {
+                        entity: &entity,
+                        distance: self.position.distance(&entity.position),
+                    })
+                }
+            },
+            None => {
+                all_entities.find_closest_entity(&self.position, enemy)
+            }
+        };
+        match target_entity {
+            Some(result) => {
+                let unit = unit_map.get(&self.unit_type).unwrap();
+                let aa_range: u16 = unit.attack_range;
+                let movement_speed: u16 = unit.movement_speed;
+                let attack_duration: u16 = unit.attack_duration;
+
+                if result.distance <= aa_range {
+                    // ATTACK
+                    msg!("{:?} {:?}", self.owner, result.entity.owner);
+                    self.state = EntityState::Attack{progress: 0, attack_on: attack_duration, target_id:result.entity.id};
+                } else {
+                    let target = self.position.move_towards(&result.entity.position, result.distance, movement_speed);
+                    self.state = EntityState::Moving{to: target};
+                }
+
+                if self.target == None {
+                    self.target = Some(result.entity.id);
+                }
+            },
+            None => {
+                // No target for this turn, do nothing
+                self.state = EntityState::Idle;
+            }
+        }
+        sol_log_compute_units();
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, AnchorSerialize, AnchorDeserialize, Copy, serde::Serialize, serde::Deserialize)]
+pub enum EntityState {
+    Idle,
+    Moving{to: Location},
+    Dead,
+    Attack{progress: u16, attack_on: u16, target_id: u16},
+    Ability{progress: u16, cast_on: u16, release_on: u16},
+    Ult{progress: u16, cast_on: u16, release_on: u16},
+}
+/// Enum denoting owner of an entity
+#[derive(Debug, PartialEq, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum Controller {
+    Opponent,
+    Initializer,
+    Contract,
+    Graveyard,
+}
+
+#[derive(Debug, AnchorDeserialize, AnchorSerialize, Clone, Copy)]
+pub struct EntityResult<'a> {
+    pub entity: &'a Entity,
+    pub distance: u16,
+}
+
 impl Default for EntityState {
     fn default() -> Self { EntityState::Idle }
 }
