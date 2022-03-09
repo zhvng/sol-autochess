@@ -101,4 +101,8 @@ impl WasmState {
     pub fn get_entities(&mut self) -> JsValue {
         JsValue::from_serde(&self.game.entities).unwrap()
     }
+
+    pub fn get_entity_by_id(&mut self, id: u16) -> JsValue {
+        JsValue::from_serde(&self.game.entities.get_by_id_mut(id)).unwrap()
+    }
 }
