@@ -9,8 +9,6 @@ import { ControllerWasm, UnitTypeWasm } from "wasm-client";
 import EntityManager from "./EntityManager";
 
 const stats = Stats();
-stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
-document.body.appendChild( stats.dom );
 class Game {
     private readonly renderer: WebGLRenderer;
     private readonly cssRenderer: CSS2DRenderer;
@@ -26,6 +24,8 @@ class Game {
     private readonly logicUpdatePeriod = 200; //ms
 
     constructor() {
+        stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+        document.body.appendChild( stats.dom );
         
         this.cssRenderer = new CSS2DRenderer();
         this.cssRenderer.setSize(window.innerWidth, window.innerHeight);

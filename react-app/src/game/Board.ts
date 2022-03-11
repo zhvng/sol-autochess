@@ -124,7 +124,7 @@ class Board {
             new THREE.LineBasicMaterial({
                 color: 'white',
                 visible: true,
-            })  
+            })
         );
         grid.position.set(0,1,0);
         grid.castShadow = false;
