@@ -39,7 +39,7 @@ class Entity {
 
         // load animations
         this.mixer = new AnimationMixer( this.model );
-
+        console.log(gltf.animations)
         switch (this.unitType) {
             case UnitTypeWasm.Wolf:
                 this.animations.set(Animations.Walk, this.mixer.clipAction(gltf.animations[3]));
@@ -50,7 +50,7 @@ class Entity {
                 this.animations.set(Animations.Die, wolfDead);
                 break;
             case UnitTypeWasm.Bull:
-                this.animations.set(Animations.Walk, this.mixer.clipAction(gltf.animations[11]));
+                this.animations.set(Animations.Walk, this.mixer.clipAction(gltf.animations[4]));
                 this.animations.set(Animations.Attack, this.mixer.clipAction(gltf.animations[0]).setLoop(LoopOnce, 1).setEffectiveTimeScale(0.4));
                 this.animations.set(Animations.Idle, this.mixer.clipAction(gltf.animations[6]));
                 const bullDead = this.mixer.clipAction(gltf.animations[2]).setLoop(LoopOnce,1);
@@ -58,19 +58,13 @@ class Entity {
                 this.animations.set(Animations.Die, bullDead);
                 break;
             case UnitTypeWasm.Bear:
-                console.log(gltf.animations[0])
                 this.animations.set(Animations.Walk, this.mixer.clipAction(gltf.animations[0]));
                 const bearHeadMove = gltf.animations[0].tracks[28];
 
                 this.animations.set(Animations.Attack, this.mixer.clipAction(new AnimationClip('Idle', 2,[bearHeadMove, new VectorKeyframeTrack( 'Bear_Neck_01SHJnt_20.position', [ 0, 1, 2 ], [ .05, 0, 0, .1, -.02, 0, 0, 0, 0 ] ) ])).setLoop(LoopOnce, 1).setEffectiveTimeScale(.8));
                 this.animations.set(Animations.Idle, this.mixer.clipAction(new AnimationClip('Idle', 3,[])));
 
-                const axis = new Vector3( 0, 0, 1 );
-                const qInitial = new Quaternion().setFromAxisAngle( axis, 0 );
-                const qFinal = new Quaternion().setFromAxisAngle( axis, Math.PI/2 );
-                
-                const quaternionKF = new QuaternionKeyframeTrack( '.quaternion', [ 0, 1 ], [ qInitial.x, qInitial.y, qInitial.z, qInitial.w, qFinal.x, qFinal.y, qFinal.z, qFinal.w ] );
-                const bearDieClip = new AnimationClip('Action', 3, [ quaternionKF ] );
+                const bearDieClip = new AnimationClip('Action', 3, [ new VectorKeyframeTrack( '.position', [ 0, 1], [ 0, 0, 0, 0, -1.5, 0])]);
                 const bearDead = this.mixer.clipAction(bearDieClip).setLoop(LoopOnce, 1)
                 bearDead.clampWhenFinished = true;
 
