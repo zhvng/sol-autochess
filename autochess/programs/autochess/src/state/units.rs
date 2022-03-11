@@ -43,7 +43,8 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
 pub enum UnitType {
     Wolf,
     Bull,
-    Bear
+    Bear,
+    Hidden{hand_position: u8}, // 0 -> n-1 where n is size of hand
 }
 
 impl Default for UnitType {

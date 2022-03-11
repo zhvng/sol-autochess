@@ -45,6 +45,16 @@ impl Entities {
         None
     }
 
+    pub fn count_for_controller(&self, controller: Controller) -> u16 {
+        let mut count: u16 = 0;
+        for entity in &self.all {
+            if entity.owner == controller {
+                count += 1;
+            }
+        }
+        count
+    }
+
     /// Find closest entity to a point. With a given owner and within a given range. If no such units exist return none
     pub fn find_closest_entity_in_range(&self, position: &Location, range: u16, owner: Controller ) -> Option<EntityResult> {
         let mut min_distance: u16 = u16::MAX;

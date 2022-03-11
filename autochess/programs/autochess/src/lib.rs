@@ -9,23 +9,27 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 #[program]
 pub mod autochess {
 
-    use std::sync::Arc;
+    use std::{sync::Arc, str::FromStr};
 
     use anchor_lang::solana_program::log::sol_log_compute_units;
     use state::units;
 
-    use crate::state::{game::{validate_reveal, WinCondition}, entities::Controller, units::UnitType};
+    use crate::state::{game::{validate_reveal, WinCondition, draw_hand}, entities::Controller, units::UnitType};
 
     use super::*;
 
     /// initialize a game account. It's a PDA based on the provided game id.
-    pub fn create_game(ctx: Context<CreateGame>, game_id: String, wager: u64, commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
+    /// Commitments are provided for to hide info until its reveal later
+    /// Set state to 0
+    pub fn create_game(ctx: Context<CreateGame>, game_id: String, burner_wallet: String, wager: u64, commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         game.initialize_default();
         game.initializer = *ctx.accounts.initializer.key;
         game.wager = wager;
         game.i_commitment_1 = Some(commitment_1);
         game.i_commitment_2 = Some(commitment_2);
+
+        game.i_burner = Pubkey::from_str(&burner_wallet).or_else(|_| return Err(ProgramError::InvalidArgument))?;
 
         // Collect sol for the wager
         let ix = anchor_lang::solana_program::system_instruction::transfer(
@@ -42,12 +46,16 @@ pub mod autochess {
         )
     }
 
-    /// state = 0. Opponent joins game by passing in pda and enough sol to cover wager
-    pub fn join_game(ctx: Context<JoinGame>, commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
+    /// state = 0. Opponent joins game by passing in pda and enough sol to cover wager, as well as commitments
+    /// Change state to 1.
+    pub fn join_game(ctx: Context<JoinGame>, burner_wallet: String, commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         game.opponent = *ctx.accounts.invoker.key;
         game.o_commitment_1 = Some(commitment_1);
         game.o_commitment_2 = Some(commitment_2);
+
+        game.o_burner = Pubkey::from_str(&burner_wallet).or_else(|_| return Err(ProgramError::InvalidArgument))?;;
+
         game.state = 1;
 
         // Collect sol for the wager
@@ -66,27 +74,17 @@ pub mod autochess {
     }
 
     /// state = 1. Each player reveals their commitments. They are xor'd to get a source of randomness for the drawing phase
+    /// When both players reveal, state is changed to 2.
     pub fn reveal_first(ctx: Context<RevealFirst>, reveal_1: [u8; 32], secret: [u8; 32] ) -> ProgramResult {
         let game = &mut ctx.accounts.game;
-        let invoker_is_initializer = game.initializer == *ctx.accounts.invoker.key;
+        let invoker_is_initializer = game.i_burner == *ctx.accounts.invoker.key;
         msg!("{:?}", game.reveal_1);
         msg!("{:?}", reveal_1);
         
+        // Validate reveal
         if invoker_is_initializer && !game.i_has_revealed {
             if !validate_reveal(&game.i_commitment_1.unwrap(), &reveal_1, &secret) {
                 return Err(ErrorCode::RevealError.into());
-            }
-            match &mut game.reveal_1 {
-                None => {
-                    game.reveal_1 = Some(reveal_1);
-                },
-                Some(stored_reveal) => {
-                    stored_reveal.iter_mut()
-                        .zip(reveal_1.iter())
-                        .for_each(|(x1, x2)| *x1 ^= *x2);
-
-                    game.reveal_1 = Some(*stored_reveal);
-                }   
             }
             game.i_has_revealed = true;
             game.i_commitment_1 = None; // save memory
@@ -94,46 +92,118 @@ pub mod autochess {
             if !validate_reveal(&game.o_commitment_1.unwrap(), &reveal_1, &secret) {
                 return Err(ErrorCode::RevealError.into());
             }
-            match &mut game.reveal_1 {
-                None => {
-                    game.reveal_1 = Some(reveal_1);
-                },
-                Some(stored_reveal) => {
-                    stored_reveal.iter_mut()
-                        .zip(reveal_1.iter())
-                        .for_each(|(x1, x2)| *x1 ^= *x2);
-                    game.reveal_1 = Some(*stored_reveal);
-                }   
-            }
             game.o_has_revealed = true;
             game.o_commitment_1 = None; // save memory
         } else {
             return Err(ErrorCode::RevealError.into());
         }
 
+        // store reveal
+        match &mut game.reveal_1 {
+            None => {
+                game.reveal_1 = Some(reveal_1);
+            },
+            Some(stored_reveal) => {
+                stored_reveal.iter_mut()
+                    .zip(reveal_1.iter())
+                    .for_each(|(x1, x2)| *x1 ^= *x2);
+                game.reveal_1 = Some(*stored_reveal);
+            }   
+        }
+
+        // Update state if finished
         if game.i_has_revealed && game.o_has_revealed {
             game.state = 2;
+            game.i_has_revealed = false;
+            game.o_has_revealed = false;
+
+            // (todo) A 2 minute (+ a few seconds) timer is started. Once this timer is up, disable piece placement so its safe to reveal.
+            let timer: i64 = 60 * 2 + 5;
+            game.piece_timer = Some(ctx.accounts.clock.unix_timestamp + timer);
         }
         Ok(())
     }
 
-    /// state = 2.
-    pub fn place_piece(ctx: Context<PlacePiece>, grid_x: u16, grid_y: u16, unit_type: UnitType) -> ProgramResult {
+    /// state = 2. Place a piece without revealing its type. Reveal its position in your hand.
+    /// When timer expires, you cannot place anymore pieces.
+    pub fn place_piece_hidden(ctx: Context<PlacePiece>, grid_x: u16, grid_y: u16, hand_position: u8) -> ProgramResult {
         let game = &mut ctx.accounts.game;
-        let player_type = if game.initializer == *ctx.accounts.invoker.key {
-            Controller::Initializer
-        } else {
-            Controller::Opponent
-        };
+        let player_type = game.get_player_type(*ctx.accounts.invoker.key);
 
-        let placed = game.place_piece(player_type, grid_x, grid_y, unit_type);
+        // if timer is expired, error
+        if ctx.accounts.clock.unix_timestamp > game.piece_timer.unwrap() {
+            return Err(ErrorCode::TimeError.into());
+        }
+
+        // place piece. fail if fails
+        let placed = game.place_piece(player_type, grid_x, grid_y, UnitType::Hidden{hand_position});
         if placed == None {
             return Err(ErrorCode::Hello.into());
         }
         Ok(())
     }
+    /// state = 2. Each player reveals their second commitments. 
+    /// State is advanced to 3 once both are revealed.
+    pub fn reveal_second(ctx: Context<RevealSecond>, reveal_2: [u8; 32], secret: [u8; 32] ) -> ProgramResult {
+        let game = &mut ctx.accounts.game;
+        let player_type = game.get_player_type(*ctx.accounts.invoker.key);
 
-    /// state = 4 (eventually)
+        // Using second reveal, simulate the player's draw. Then fill in identities of the hidden pieces.
+        let hand = draw_hand(&game.reveal_1.unwrap(), &reveal_2);
+
+        for piece in &mut game.entities.all {
+            if piece.owner == player_type { 
+                match piece.unit_type {
+                    UnitType::Hidden{hand_position} => {
+                        // replace hidden enum with the piece type.
+                        piece.unit_type = hand[hand_position as usize];
+                    },
+                    _ => {
+                        // shouldn't reach here ever
+                        return Err(ProgramError::InvalidAccountData);
+                    }
+                }
+            }
+        }
+
+        if player_type == Controller::Initializer && !game.i_has_revealed {
+            if !validate_reveal(&game.o_commitment_2.unwrap(), &reveal_2, &secret) {
+                return Err(ErrorCode::RevealError.into());
+            }
+            game.i_has_revealed = true;
+            game.i_commitment_2 = None; // save memory
+        } else if player_type == Controller::Opponent && !game.o_has_revealed {
+            if !validate_reveal(&game.o_commitment_2.unwrap(), &reveal_2, &secret) {
+                return Err(ErrorCode::RevealError.into());
+            }
+            game.o_has_revealed = true;
+            game.i_commitment_2 = None; // save memory
+        } else {
+            return Err(ErrorCode::RevealError.into());
+        }
+
+        match &mut game.reveal_2 {
+            None => {
+                game.reveal_2 = Some(reveal_2);
+            },
+            Some(stored_reveal) => {
+                stored_reveal.iter_mut()
+                    .zip(reveal_2.iter())
+                    .for_each(|(x1, x2)| *x1 ^= *x2);
+                game.reveal_2 = Some(*stored_reveal);
+            }   
+        }
+
+        if game.i_has_revealed && game.o_has_revealed {
+            game.state = 3;
+            game.i_has_revealed = false;
+            game.o_has_revealed = false;
+        }
+        Ok(())
+    }
+
+    /// state = 3. Once second reveal happens, pieces are locked in and game begins.
+    /// move forward by given number of steps
     pub fn crank_game(ctx: Context<CrankGame>, steps: u8) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         let unit_map = units::get_unit_map();
@@ -145,7 +215,7 @@ pub mod autochess {
         Ok(())
     }
 
-    /// state = 4 (eventually)
+    /// state = 3. If a win condition is reached, claim it.
     pub fn claim_victory(ctx: Context<ClaimVictory>, game_id: String, nonce: u8) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         let invoker = &ctx.accounts.invoker;
@@ -212,10 +282,11 @@ pub struct RevealFirst<'info> {
     #[account(
         mut,
         constraint = game.state == 1,
-        constraint = game.initializer == *invoker.key || game.opponent == *invoker.key,
+        constraint = game.i_burner == *invoker.key || game.o_burner == *invoker.key,
     )]
     game: Account<'info, Game>,
     invoker: Signer<'info>,
+    clock: Sysvar<'info, Clock>,
 }
 
 #[derive(Accounts)]
@@ -223,7 +294,19 @@ pub struct PlacePiece<'info> {
     #[account(
         mut,
         constraint = game.state == 2,
-        constraint = game.initializer == *invoker.key || game.opponent == *invoker.key,
+        constraint = game.i_burner == *invoker.key || game.o_burner == *invoker.key,
+    )]
+    game: Account<'info, Game>,
+    invoker: Signer<'info>,
+    clock: Sysvar<'info, Clock>,
+}
+
+#[derive(Accounts)]
+pub struct RevealSecond<'info> {
+    #[account(
+        mut,
+        constraint = game.state == 2,
+        constraint = game.i_burner == *invoker.key || game.o_burner == *invoker.key,
     )]
     game: Account<'info, Game>,
     invoker: Signer<'info>,
@@ -233,8 +316,8 @@ pub struct PlacePiece<'info> {
 pub struct CrankGame<'info> {
     #[account(
         mut,
-        constraint = game.state == 2,
-        constraint = game.initializer == *invoker.key || game.opponent == *invoker.key,
+        constraint = game.state == 3,
+        constraint = game.i_burner == *invoker.key || game.o_burner == *invoker.key,
     )]
     game: Account<'info, Game>,
     invoker: Signer<'info>,
@@ -244,7 +327,7 @@ pub struct CrankGame<'info> {
 pub struct ClaimVictory<'info> {
     #[account(
         mut,
-        constraint = game.state == 2,
+        constraint = game.state == 3,
         constraint = game.initializer == *invoker.key || game.opponent == *invoker.key,
         constraint = game.initializer == *initializer.key,
         close = initializer,
@@ -261,6 +344,8 @@ pub struct ClaimVictory<'info> {
 pub enum ErrorCode {
     #[msg("This is an error message clients will automatically display")]
     Hello,
+    #[msg("Time Limit Exceeded")]
+    TimeError,
     #[msg("Error revealing commitment")]
     RevealError,
     #[msg("Error claiming victory")]

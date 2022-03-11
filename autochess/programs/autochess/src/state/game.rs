@@ -26,6 +26,9 @@ pub struct Game {
     pub initializer: Pubkey,
     pub opponent: Pubkey,
 
+    pub i_burner: Pubkey,
+    pub o_burner: Pubkey,
+
     pub i_commitment_1: Option<[u8; 32]>,
     pub i_commitment_2: Option<[u8; 32]>,
     pub o_commitment_1: Option<[u8; 32]>,
@@ -35,6 +38,9 @@ pub struct Game {
     pub o_has_revealed: bool,
     pub reveal_1: Option<[u8; 32]>,
     pub reveal_2: Option<[u8; 32]>,
+
+    /// The time at which placing new pieces is disabled.
+    pub piece_timer: Option<i64>,
 
     pub entities: Entities,
 
@@ -73,6 +79,7 @@ impl Game {
         game
     }
 
+    /// Initialize the default state of the game struct. Called at create_game 
     pub fn initialize_default(&mut self) {
         self.i_has_revealed = false;
         self.o_has_revealed = false;
@@ -86,7 +93,12 @@ impl Game {
         self.win_condition = WinCondition::InProgress;
     }
 
-    /// Place piece in a grid, where (0,0) is the bottom left grid from the initalizers pov, and (7,7) is the top right
+    /// Place piece in a grid, where (0,0) is the bottom left grid from the initalizers pov, and (7,7) is the top right.
+    /// Do this according to the following rules:
+    ///  - pieces must be placed in the center of a grid on the player's side of the board
+    ///  - no two pieces can share a grid
+    ///  - hidden pieces can be placed by initializer or opponent. These contain a hand position value that must be < 5 and unique for each player
+    ///  - 3 pieces max for initializer/opponent 
     pub fn place_piece(&mut self, player: entities::Controller, grid_x: u16, grid_y: u16, unit_type: units::UnitType) -> Option<u16> {
         msg!("{:?}", self.entities);
 
@@ -97,15 +109,23 @@ impl Game {
         if x > 800 || y > 800 {
             return None;
         }
-        // must place on your side
+        // must place on your side, and within your piece limits
         match player {
             entities::Controller::Initializer => {
                 if y > 300 {
                     return None;
                 }
+                // For now, we're doing 3 vs 3. But subject to change
+                if self.entities.count_for_controller(player) >= 3 {
+                    return None;
+                }
             },
             entities::Controller::Opponent => {
                 if y < 500 {
+                    return None;
+                }
+
+                if self.entities.count_for_controller(player) >= 3 {
                     return None;
                 }
             },
@@ -114,32 +134,71 @@ impl Game {
             }
         }
 
+        // Check if it on top of another piece
+        match self.entities.find_closest_entity(&utils::Location{x, y}, player) {
+            Some(result) => {
+                if result.distance < 25 {
+                    // same grid location, fail it
+                    return None;
+                }
+            },
+            None =>{}
+        }
+        // if piece is Hidden, make sure the hand position is unique and valid
+        match unit_type {
+            units::UnitType::Hidden{hand_position} => {
+                // We can only place a hidden piece if we are a player
+                if !(player == entities::Controller::Initializer || player == entities::Controller::Opponent) {
+                    return None;
+                }
+                // Hand position must be in bounds
+                if hand_position >= 5 {
+                    return None;
+                }
+                // Hand position must be unique
+                for entity in &self.entities.all {
+                    if entity.owner == player {
+                        match entity.unit_type {
+                            units::UnitType::Hidden{hand_position: hand_position_compare} => {
+                                if hand_position_compare == hand_position {
+                                    return None;
+                                }
+                            }
+                            _ =>{}
+                        }
+                    }
+                }
+            },
+            _ => {}
+        }
+
+        // Finally, place the piece
         let id = self.entities.create(player, x, y, unit_type);
         return Some(id);
     }
 
     /// Check if the game has been completed and update account with who won
     pub fn update_win_condition(&mut self) {
-        let mut iAlive = 0;
-        let mut oAlive = 0;
+        let mut i_alive = 0;
+        let mut o_alive = 0;
         for entity in &self.entities.all {
             if entity.state != entities::EntityState::Dead {
                 match entity.owner {
                     entities::Controller::Initializer => {
-                        iAlive += 1;
+                        i_alive += 1;
                     },
                     entities::Controller::Opponent => {
-                        oAlive += 1;
+                        o_alive += 1;
                     },
                     _other => {}
                 }
             }
         }
-        if iAlive == 0 && oAlive == 0 {
+        if i_alive == 0 && o_alive == 0 {
             self.win_condition = WinCondition::Tie;
-        } else if iAlive == 0 {
+        } else if i_alive == 0 {
             self.win_condition = WinCondition::Opponent;
-        } else if oAlive == 0 {
+        } else if o_alive == 0 {
             self.win_condition = WinCondition::Initializer;
         } else {
             self.win_condition = WinCondition::InProgress;
@@ -149,10 +208,10 @@ impl Game {
     /// Retreive a random number derived from the second reveal
     fn get_random_u8(&mut self) -> u8 {
         if self.random_calls >= 32 {
-            self.reveal_1 = Some(generate_new_randomness(&self.reveal_1.unwrap()));
+            self.reveal_2 = Some(generate_new_randomness(&self.reveal_2.unwrap()));
             self.random_calls = 0;
         } 
-        let randomness = self.reveal_1.unwrap();
+        let randomness = self.reveal_2.unwrap();
         let random_index = (self.random_calls)as usize;
         self.random_calls = self.random_calls + 1;
         return randomness[random_index];
@@ -213,7 +272,13 @@ impl Game {
         }
         self.tick = self.tick + 1;
     }
-    
+    pub fn get_player_type(&self, burner_wallet: Pubkey) -> entities::Controller {
+        if self.i_burner == burner_wallet {
+            entities::Controller::Initializer
+        } else {
+            entities::Controller::Opponent
+        }
+    }
 }
 
 pub fn validate_reveal(stored_hash: &[u8; 32], reveal: &[u8; 32], secret: &[u8; 32]) -> bool {
@@ -226,4 +291,28 @@ pub fn validate_reveal(stored_hash: &[u8; 32], reveal: &[u8; 32], secret: &[u8; 
 
 pub fn generate_new_randomness(stored_hash: &[u8; 32]) -> [u8; 32] {
     hash(stored_hash).to_bytes()
+}
+
+/// Draw from deck using randomness of first reveal and second reveal. Client side, but verified on chain.
+pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::UnitType> {
+    // XOR randomness together
+    let mut reveal = randomness1.clone();
+    reveal.iter_mut()
+        .zip(randomness2.iter())
+        .for_each(|(x1, x2)| *x1 ^= *x2);
+
+    let mut result: Vec<units::UnitType> = Vec::new();
+    let n = 5; //number of cards to draw
+
+    let deck = [
+        units::UnitType::Wolf,
+        units::UnitType::Bear,
+        units::UnitType::Bull
+    ];
+    for i in 0..n {
+        let random = reveal[i  as usize]; //random u8 between 0 and 255
+        let index = f32::floor(random as f32 / 256.0 * 3.0) as u8; //between 0 and 2 inclusive
+        result.push(deck[index as usize]);
+    }
+    result
 }
