@@ -35,7 +35,7 @@ class EntityManager {
         };
         
         const loader = new GLTFLoader(loadingManager);
-        loader.setPath('./resources/lowpoly/');
+        loader.setPath('../resources/lowpoly/');
         loader.load('Wolf.gltf', (gltf: GLTF) => {
             //   this.scene.add(gltf.scene);
             //   const mixer = new THREE.AnimationMixer( gltf.scene );
@@ -57,7 +57,7 @@ class EntityManager {
             gltf.scene.scale.set(.7, .7, .7);
             this.models.set(UnitTypeWasm.Bull, gltf);
         });
-        loader.setPath('./resources/bear_walk_animation/');
+        loader.setPath('../resources/bear_walk_animation/');
         loader.load('scene.gltf', (gltf) => {
             gltf.scene.traverse(c => {
                 c.castShadow = true;
@@ -75,7 +75,7 @@ class EntityManager {
     }
 
     public updateGame(entities: Array<any>) {
-        console.log(entities);
+        // console.log(entities);
         for (const e of entities) {
             if (this.entities.has(e.id)) {
                 // do actions

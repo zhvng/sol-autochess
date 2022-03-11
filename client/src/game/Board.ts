@@ -68,7 +68,7 @@ class Board {
     }
 
     private createBoardMesh(): Mesh {
-        const texture = new THREE.TextureLoader().load( "resources/textures/test2.jpeg" );
+        const texture = new THREE.TextureLoader().load( "../resources/textures/test2.jpeg" );
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.offset.set( 0, 0 );
         texture.repeat.set( 2, 2 );
@@ -99,7 +99,7 @@ class Board {
         return plane
     }
     private createBoardIsland(): Mesh {
-        const texture = new THREE.TextureLoader().load( "resources/textures/mountain.jpeg" );
+        const texture = new THREE.TextureLoader().load( "../resources/textures/mountain.jpeg" );
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.offset.set( 0, 0 );
         texture.repeat.set( 1, 1 );

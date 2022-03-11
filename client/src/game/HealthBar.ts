@@ -5,7 +5,7 @@ import { ControllerWasm } from 'wasm-client';
 
 class HealthBar {
     private readonly healthBarWidthPx: number = 50;
-    private readonly healthBarHeightPx: number = 9;
+    private readonly healthBarHeightPx: number = 9.5;
     private health: number;
     private slidingRedBarSize: number; 
     private readonly bar: CSS2DObject;

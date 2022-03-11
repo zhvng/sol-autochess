@@ -107,7 +107,7 @@ class Game {
             
             setTimeout(()=>{this.simulationStarted = true;}, 2000);
         }, 4000);
-        console.log(this.gameController.getEntities());
+        // console.log(this.gameController.getEntities());
     }
 
     public placePiece(gridX: number, gridY: number, unitType: UnitTypeWasm, controller: ControllerWasm) {

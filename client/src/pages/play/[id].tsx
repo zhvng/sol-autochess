@@ -9,8 +9,8 @@ import init from 'wasm-client';
 const Play = () => {
     const router = useRouter()
     const { id } = router.query
+  
     console.log('id: ', id);
-
     const mountRef = useRef(null);
     useEffect(() => {
       (async () => {
@@ -31,11 +31,12 @@ const Play = () => {
         }
       })()
     }, []);
+    if (id === undefined) return (
+      <div>loading</div>
+    )
     return (
         <>
-          <Head>
-            <title>dAutochess</title>
-          </Head>
+          <title>dAutochess</title>
           <div
             style={{ width: '100%', height: '100%'}}
             ref={mountRef}
