@@ -28,6 +28,7 @@ class Game {
         document.body.appendChild( stats.dom );
         
         this.cssRenderer = new CSS2DRenderer();
+        console.log(window.innerWidth, window.innerHeight)
         this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
         this.cssRenderer.domElement.style.position = 'absolute';
         this.cssRenderer.domElement.style.top = '0px';
