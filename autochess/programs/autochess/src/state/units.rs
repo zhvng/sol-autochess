@@ -11,7 +11,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
         Unit {
             movement_speed: 200 / TICKS_PER_SECOND, // per tick
             attack_duration: 4, // in ticks
-            attack_range: 100,
+            attack_range: 125,
             attack_damage: 15,
             starting_health: 100,
         },
@@ -22,7 +22,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
             movement_speed: 75 / TICKS_PER_SECOND, // per tick
             attack_duration: 6,
             attack_range: 150,
-            attack_damage: 3,
+            attack_damage: 10,
             starting_health: 250,
         },
     );
@@ -31,7 +31,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
         Unit {
             movement_speed: 125 / TICKS_PER_SECOND, // per tick
             attack_duration: 7,
-            attack_range: 125,
+            attack_range: 150,
             attack_damage: 25,
             starting_health: 150,
         },

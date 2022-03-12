@@ -28,6 +28,44 @@ impl Entities {
         self.counter += 1;
         return id;
     }
+    /// place a hidden piece. on reveal, call reveal_hidden
+    pub fn create_hidden(&mut self, player: Controller, x: u16, y: u16, hand_position: u8) -> u16 {
+        let id = self.counter;
+        self.all.push(Entity {
+            id,
+            owner: player,
+            target: None,
+            speed_multiplier: 100,
+            position: Location{x, y},
+            health: 0,
+            unit_type: UnitType::Hidden{hand_position},
+            state: EntityState::Idle,
+        });
+        self.counter += 1;
+        return id;
+    }
+    /// Given a hand of unit types, reveal all hidden pieces on the board for a given player
+    pub fn reveal_all_hidden(&mut self, player: Controller, hand: &Vec<UnitType>) {
+        let unit_map = units::get_unit_map();
+        for entity in &mut self.all {
+            if entity.owner == player {
+                match entity.unit_type {
+                    UnitType::Hidden{hand_position} => {
+
+                        let unit_type = hand[hand_position as usize];
+                        let unit = unit_map.get(&unit_type).unwrap();
+
+                        entity.unit_type = unit_type;
+                        entity.health = unit.starting_health;
+                    },
+                    _ => {
+                        // shouldn't reach here bc all pieces should be hidden
+                    }
+                }
+            }
+        }
+    }
+
     pub fn get_by_id_mut(&mut self, id: u16) -> Option<&mut Entity> {
         for entity in &mut self.all {
             if entity.id == id {

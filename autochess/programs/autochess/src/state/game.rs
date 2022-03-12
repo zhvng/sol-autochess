@@ -93,44 +93,37 @@ impl Game {
         self.win_condition = WinCondition::InProgress;
     }
 
-    /// Place piece in a grid, where (0,0) is the bottom left grid from the initalizers pov, and (7,7) is the top right.
-    /// Do this according to the following rules:
-    ///  - pieces must be placed in the center of a grid on the player's side of the board
-    ///  - no two pieces can share a grid
-    ///  - hidden pieces can be placed by initializer or opponent. These contain a hand position value that must be < 5 and unique for each player
+    /// Check if a piece can be placed at a given location by a player, according the following rules
+    ///  - no two pieces share a location
     ///  - 3 pieces max for initializer/opponent 
-    pub fn place_piece(&mut self, player: entities::Controller, grid_x: u16, grid_y: u16, unit_type: units::UnitType) -> Option<u16> {
-        msg!("{:?}", self.entities);
-
-        let x = grid_x * 100 + 50;
-        let y = grid_y * 100 + 50;
-
+    ///  - in bounds and on the right side
+    fn can_place(&self, player: entities::Controller, x: u16, y: u16) -> bool {
         // must place in bounds
         if x > 800 || y > 800 {
-            return None;
+            return false;
         }
         // must place on your side, and within your piece limits
         match player {
             entities::Controller::Initializer => {
                 if y > 300 {
-                    return None;
+                    return false;
                 }
                 // For now, we're doing 3 vs 3. But subject to change
                 if self.entities.count_for_controller(player) >= 3 {
-                    return None;
+                    return false;
                 }
             },
             entities::Controller::Opponent => {
                 if y < 500 {
-                    return None;
+                    return false;
                 }
 
                 if self.entities.count_for_controller(player) >= 3 {
-                    return None;
+                    return false;
                 }
             },
             _other => {
-                return None;
+                return false;
             }
         }
 
@@ -139,42 +132,70 @@ impl Game {
             Some(result) => {
                 if result.distance < 25 {
                     // same grid location, fail it
-                    return None;
+                    return false;
                 }
             },
             None =>{}
         }
-        // if piece is Hidden, make sure the hand position is unique and valid
-        match unit_type {
-            units::UnitType::Hidden{hand_position} => {
-                // We can only place a hidden piece if we are a player
-                if !(player == entities::Controller::Initializer || player == entities::Controller::Opponent) {
-                    return None;
-                }
-                // Hand position must be in bounds
-                if hand_position >= 5 {
-                    return None;
-                }
-                // Hand position must be unique
-                for entity in &self.entities.all {
-                    if entity.owner == player {
-                        match entity.unit_type {
-                            units::UnitType::Hidden{hand_position: hand_position_compare} => {
-                                if hand_position_compare == hand_position {
-                                    return None;
-                                }
+        return true;
+    }
+    
+
+    /// Place piece in a grid, where (0,0) is the bottom left grid from the initalizers pov, and (7,7) is the top right.
+    /// For client use
+    pub fn place_piece(&mut self, player: entities::Controller, grid_x: u16, grid_y: u16, unit_type: units::UnitType) -> Option<u16> {
+        msg!("{:?}", self.entities);
+
+        let x = grid_x * 100 + 50;
+        let y = grid_y * 100 + 50;
+
+        if self.can_place(player, x, y) {
+            let id = self.entities.create(player, x, y, unit_type);
+            return Some(id);
+        } else {
+            return None;
+        }
+    }
+    /// Place a hidden piece piece in a grid, where (0,0) is the bottom left grid from the initalizers pov, and (7,7) is the top right.
+    pub fn place_piece_hidden(&mut self, player: entities::Controller, grid_x: u16, grid_y: u16, hand_position: u8) -> Option<u16> {
+        msg!("{:?}", self.entities);
+
+        let x = grid_x * 100 + 50;
+        let y = grid_y * 100 + 50;
+
+        if self.can_place(player, x, y) {
+            // We can only place a hidden piece if we are a player
+            if !(player == entities::Controller::Initializer || player == entities::Controller::Opponent) {
+                return None;
+            }
+            // Hand position must be in bounds
+            if hand_position >= 5 {
+                return None;
+            }
+            // Hand position must be unique
+            for entity in &self.entities.all {
+                if entity.owner == player {
+                    match entity.unit_type {
+                        units::UnitType::Hidden{hand_position: hand_position_compare} => {
+                            if hand_position_compare == hand_position {
+                                return None;
                             }
-                            _ =>{}
                         }
+                        _ =>{}
                     }
                 }
-            },
-            _ => {}
+            }
+            // Finally, place the piece
+            let id = self.entities.create_hidden(player, x, y, hand_position);
+            return Some(id);
+        } else {
+            return None;
         }
-
-        // Finally, place the piece
-        let id = self.entities.create(player, x, y, unit_type);
-        return Some(id);
+    }
+    /// Using second reveal, simulate the player's draw. Then fill in identities of the hidden pieces.
+    pub fn reveal_hidden_pieces(&mut self, player: entities::Controller, reveal_2: &[u8; 32]) {
+        let hand = draw_hand(&self.reveal_1.unwrap(), reveal_2);
+        self.entities.reveal_all_hidden(player, &hand);
     }
 
     /// Check if the game has been completed and update account with who won
@@ -296,6 +317,7 @@ pub fn generate_new_randomness(stored_hash: &[u8; 32]) -> [u8; 32] {
 /// Draw from deck using randomness of first reveal and second reveal. Client side, but verified on chain.
 pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::UnitType> {
     // XOR randomness together
+    msg!("drawing");
     let mut reveal = randomness1.clone();
     reveal.iter_mut()
         .zip(randomness2.iter())
@@ -311,7 +333,7 @@ pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::U
     ];
     for i in 0..n {
         let random = reveal[i  as usize]; //random u8 between 0 and 255
-        let index = f32::floor(random as f32 / 256.0 * 3.0) as u8; //between 0 and 2 inclusive
+        let index = (random as f32 / 256.0 * 3.0) as u8; //between 0 and 2 inclusive
         result.push(deck[index as usize]);
     }
     result

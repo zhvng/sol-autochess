@@ -9,8 +9,6 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 #[program]
 pub mod autochess {
 
-    use std::{sync::Arc, str::FromStr};
-
     use anchor_lang::solana_program::log::sol_log_compute_units;
     use state::units;
 
@@ -19,9 +17,10 @@ pub mod autochess {
     use super::*;
 
     /// initialize a game account. It's a PDA based on the provided game id.
-    /// Commitments are provided for to hide info until its reveal later
+    /// Commitments are provided for to hide info until its reveal later.
+    /// Send a burner wallet for fees for a smoother ux
     /// Set state to 0
-    pub fn create_game(ctx: Context<CreateGame>, game_id: String, burner_wallet: String, wager: u64, commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
+    pub fn create_game(ctx: Context<CreateGame>, game_id: String, burner_wallet: [u8; 32], wager: u64, commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         game.initialize_default();
         game.initializer = *ctx.accounts.initializer.key;
@@ -29,7 +28,7 @@ pub mod autochess {
         game.i_commitment_1 = Some(commitment_1);
         game.i_commitment_2 = Some(commitment_2);
 
-        game.i_burner = Pubkey::from_str(&burner_wallet).or_else(|_| return Err(ProgramError::InvalidArgument))?;
+        game.i_burner = Pubkey::new_from_array(burner_wallet);
 
         // Collect sol for the wager
         let ix = anchor_lang::solana_program::system_instruction::transfer(
@@ -48,13 +47,13 @@ pub mod autochess {
 
     /// state = 0. Opponent joins game by passing in pda and enough sol to cover wager, as well as commitments
     /// Change state to 1.
-    pub fn join_game(ctx: Context<JoinGame>, burner_wallet: String, commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
+    pub fn join_game(ctx: Context<JoinGame>, burner_wallet: [u8; 32], commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         game.opponent = *ctx.accounts.invoker.key;
         game.o_commitment_1 = Some(commitment_1);
         game.o_commitment_2 = Some(commitment_2);
 
-        game.o_burner = Pubkey::from_str(&burner_wallet).or_else(|_| return Err(ProgramError::InvalidArgument))?;;
+        game.o_burner = Pubkey::new_from_array(burner_wallet);
 
         game.state = 1;
 
@@ -136,38 +135,20 @@ pub mod autochess {
         }
 
         // place piece. fail if fails
-        let placed = game.place_piece(player_type, grid_x, grid_y, UnitType::Hidden{hand_position});
+        let placed = game.place_piece_hidden(player_type, grid_x, grid_y, hand_position);
         if placed == None {
             return Err(ErrorCode::Hello.into());
         }
         Ok(())
     }
-    /// state = 2. Each player reveals their second commitments. 
+    /// state = 2. Each player reveals their second commitments. This also reveals hidden pieces in game state.
     /// State is advanced to 3 once both are revealed.
     pub fn reveal_second(ctx: Context<RevealSecond>, reveal_2: [u8; 32], secret: [u8; 32] ) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         let player_type = game.get_player_type(*ctx.accounts.invoker.key);
 
-        // Using second reveal, simulate the player's draw. Then fill in identities of the hidden pieces.
-        let hand = draw_hand(&game.reveal_1.unwrap(), &reveal_2);
-
-        for piece in &mut game.entities.all {
-            if piece.owner == player_type { 
-                match piece.unit_type {
-                    UnitType::Hidden{hand_position} => {
-                        // replace hidden enum with the piece type.
-                        piece.unit_type = hand[hand_position as usize];
-                    },
-                    _ => {
-                        // shouldn't reach here ever
-                        return Err(ProgramError::InvalidAccountData);
-                    }
-                }
-            }
-        }
-
         if player_type == Controller::Initializer && !game.i_has_revealed {
-            if !validate_reveal(&game.o_commitment_2.unwrap(), &reveal_2, &secret) {
+            if !validate_reveal(&game.i_commitment_2.unwrap(), &reveal_2, &secret) {
                 return Err(ErrorCode::RevealError.into());
             }
             game.i_has_revealed = true;
@@ -177,11 +158,11 @@ pub mod autochess {
                 return Err(ErrorCode::RevealError.into());
             }
             game.o_has_revealed = true;
-            game.i_commitment_2 = None; // save memory
+            game.o_commitment_2 = None; // save memory
         } else {
             return Err(ErrorCode::RevealError.into());
         }
-
+        // Combine reveals (xor)
         match &mut game.reveal_2 {
             None => {
                 game.reveal_2 = Some(reveal_2);
@@ -193,6 +174,8 @@ pub mod autochess {
                 game.reveal_2 = Some(*stored_reveal);
             }   
         }
+
+        game.reveal_hidden_pieces(player_type, &reveal_2);
 
         if game.i_has_revealed && game.o_has_revealed {
             game.state = 3;
@@ -216,7 +199,7 @@ pub mod autochess {
     }
 
     /// state = 3. If a win condition is reached, claim it.
-    pub fn claim_victory(ctx: Context<ClaimVictory>, game_id: String, nonce: u8) -> ProgramResult {
+    pub fn claim_victory(ctx: Context<ClaimVictory>) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         let invoker = &ctx.accounts.invoker;
         game.update_win_condition();

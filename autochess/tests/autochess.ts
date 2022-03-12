@@ -12,6 +12,9 @@ describe('autochess', async () => {
   anchor.setProvider(anchor.Provider.env());
 
   const opponent = anchor.web3.Keypair.generate();
+  const iBurner = anchor.web3.Keypair.generate();
+  const oBurner = anchor.web3.Keypair.generate();
+
   const gamePDA = (await anchor.web3.PublicKey.findProgramAddress(
     [
       Buffer.from("game 1"),
@@ -20,21 +23,26 @@ describe('autochess', async () => {
     program.programId
   ));
   const gamePDAKey = gamePDA[0]
-  console.log(gamePDAKey)
   const initializerReveal1 = hash('random1');
   const initializerSecret1 = hash('secret1');
   const initializerCommitment1Unhashed = Buffer.from([...Buffer.from(initializerReveal1, 'hex'), ...Buffer.from(initializerSecret1, 'hex')]).toString('hex');
-  const initializerReveal2 = hash('random2');
   const opponentReveal1 = hash('op ranodm-');
   const opponentSecret1 = hash('osecret1');
   const opponentCommitment1Unhashed = Buffer.from([...Buffer.from(opponentReveal1, 'hex'), ...Buffer.from(opponentSecret1, 'hex')]).toString('hex');
-  const opponentReveal2 = hash('op op adsfasdfop');
-
+  
   const initializerCommitment1 = [...Buffer.from(CryptoJS.SHA256(CryptoJS.enc.Hex.parse(initializerCommitment1Unhashed)).toString(), 'hex')];
   const opponentCommitment1 = [...Buffer.from(CryptoJS.SHA256(CryptoJS.enc.Hex.parse(opponentCommitment1Unhashed)).toString(), 'hex')];
-  console.log(initializerCommitment1);
-  console.log(opponentCommitment1);
 
+  const initializerReveal2 = hash('random2');
+  const initializerSecret2 = hash('secret2');
+  const initializerCommitment2Unhashed = Buffer.from([...Buffer.from(initializerReveal2, 'hex'), ...Buffer.from(initializerSecret2, 'hex')]).toString('hex');
+  const opponentReveal2 = hash('op op adsfasdfop');
+  const opponentSecret2 = hash('osecret2l');
+  const opponentCommitment2Unhashed = Buffer.from([...Buffer.from(opponentReveal2, 'hex'), ...Buffer.from(opponentSecret2, 'hex')]).toString('hex');
+  
+  const initializerCommitment2 = [...Buffer.from(CryptoJS.SHA256(CryptoJS.enc.Hex.parse(initializerCommitment2Unhashed)).toString(), 'hex')];
+  const opponentCommitment2 = [...Buffer.from(CryptoJS.SHA256(CryptoJS.enc.Hex.parse(opponentCommitment2Unhashed)).toString(), 'hex')];
+  
   const UnitType = {
     Wolf: { wolf: {} },
     Bear: { bear: {} },
@@ -47,12 +55,18 @@ describe('autochess', async () => {
       await program.provider.connection.requestAirdrop(opponent.publicKey, anchor.web3.LAMPORTS_PER_SOL*2),
       "confirmed"
     );
-    const tx = await program.rpc.createGame("game 1", new anchor.BN(anchor.web3.LAMPORTS_PER_SOL), initializerCommitment1, [...Buffer.from(hash(initializerReveal2), 'hex')], {
-      accounts: {
-        game: gamePDAKey,
-        initializer: program.provider.wallet.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      },
+    const tx = await program.rpc.createGame(
+      "game 1", 
+      iBurner.publicKey.toBytes(),
+      new anchor.BN(anchor.web3.LAMPORTS_PER_SOL), 
+      initializerCommitment1, 
+      initializerCommitment2, 
+      {
+        accounts: {
+          game: gamePDAKey,
+          initializer: program.provider.wallet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
     });
     const account = await program.account.game.fetch(gamePDAKey);
     assert.deepStrictEqual(account.initializer, program.provider.wallet.publicKey, 'Account was not correctly initialized');
@@ -61,7 +75,8 @@ describe('autochess', async () => {
   });
 
   it('joins!', async () => {
-    const tx = await program.rpc.joinGame(opponentCommitment1, [...Buffer.from(hash(opponentReveal2), 'hex')], {
+    const tx = await program.rpc.joinGame(
+      oBurner.publicKey.toBytes(), opponentCommitment1, opponentCommitment2, {
       accounts: {
         game: gamePDAKey,
         invoker: opponent.publicKey,
@@ -77,9 +92,10 @@ describe('autochess', async () => {
     const tx = await program.rpc.revealFirst([...Buffer.from(opponentReveal1, 'hex')], [...Buffer.from(opponentSecret1, 'hex')], {
       accounts: {
         game: gamePDAKey,
-        invoker: opponent.publicKey,
+        invoker: oBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
       },
-      signers: [opponent]
+      signers: [oBurner]
     });
     const account = await program.account.game.fetch(gamePDAKey);
     assert.deepStrictEqual(account.oHasRevealed, true, 'First reveal was correct');
@@ -87,12 +103,13 @@ describe('autochess', async () => {
 
   it('error when trying to repeat reveal', async () => {
     assert.rejects(async () => {
-      await program.rpc.revealFirst([...Buffer.from(initializerReveal1, 'hex')], {
+      await program.rpc.revealFirst([...Buffer.from(initializerReveal1, 'hex')], [...Buffer.from(initializerSecret1, 'hex')], {
         accounts: {
           game: gamePDAKey,
-          invoker: opponent.publicKey,
+          invoker: oBurner.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
         },
-        signers: [opponent]
+        signers: [oBurner]
       });
     });
   });
@@ -101,8 +118,10 @@ describe('autochess', async () => {
     const tx = await program.rpc.revealFirst([...Buffer.from(initializerReveal1, 'hex')], [...Buffer.from(initializerSecret1, 'hex')], {
       accounts: {
         game: gamePDAKey,
-        invoker: program.provider.wallet.publicKey,
-      }
+        invoker: iBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [iBurner]
     });
     const account = await program.account.game.fetch(gamePDAKey);
     assert.deepStrictEqual(account.reveal1, [
@@ -114,124 +133,165 @@ describe('autochess', async () => {
   });
 
   it('place pieces', async () => {
-    await program.rpc.placePiece(1, 1, UnitType.Wolf, {
+    await program.rpc.placePieceHidden(1, 1, 0, {
       accounts: {
         game: gamePDAKey,
-        invoker: program.provider.wallet.publicKey,
-      }
-    });
-    await program.rpc.placePiece(1, 2, UnitType.Wolf, {
-      accounts: {
-        game: gamePDAKey,
-        invoker: program.provider.wallet.publicKey,
-      }
-    });
-    await program.rpc.placePiece(0, 1, UnitType.Wolf, {
-      accounts: {
-        game: gamePDAKey,
-        invoker: program.provider.wallet.publicKey,
-      }
-    });
-    await program.rpc.placePiece(7, 7, UnitType.Wolf, {
-      accounts: {
-        game: gamePDAKey,
-        invoker: opponent.publicKey,
+        invoker: iBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
       },
-      signers: [opponent],
+      signers: [iBurner]
     });
-    await program.rpc.placePiece(6, 7, UnitType.Bear, {
+    await program.rpc.placePieceHidden(1, 2, 1, {
       accounts: {
         game: gamePDAKey,
-        invoker: opponent.publicKey,
+        invoker: iBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
       },
-      signers: [opponent],
+      signers: [iBurner]
     });
-    await program.rpc.placePiece(3, 5, UnitType.Bull, {
+    await program.rpc.placePieceHidden(0, 1, 2, {
       accounts: {
         game: gamePDAKey,
-        invoker: opponent.publicKey,
+        invoker: iBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
       },
-      signers: [opponent],
+      signers: [iBurner]
+    });
+    await program.rpc.placePieceHidden(7, 7, 0, {
+      accounts: {
+        game: gamePDAKey,
+        invoker: oBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [oBurner],
+    });
+    await program.rpc.placePieceHidden(6, 7, 4, {
+      accounts: {
+        game: gamePDAKey,
+        invoker: oBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [oBurner],
+    });
+    await program.rpc.placePieceHidden(3, 5, 3, {
+      accounts: {
+        game: gamePDAKey,
+        invoker: oBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [oBurner],
     });
     const account = await program.account.game.fetch(gamePDAKey);
-    assert.deepStrictEqual(account.entities.all, [
-      {
-        id: 0,
-        owner: { initializer: {} },
-        target: null,
-        speedMultiplier: 100,
-        position: { x: 150, y: 150 },
-        health: 100,
-        unitType: { wolf: {} },
-        state: { idle: {} }
-      },
-      {
-        id: 1,
-        owner: { initializer: {} },
-        target: null,
-        speedMultiplier: 100,
-        position: { x: 150, y: 250 },
-        health: 100,
-        unitType: { wolf: {} },
-        state: { idle: {} }
-      },
-      {
-        id: 2,
-        owner: { initializer: {} },
-        target: null,
-        speedMultiplier: 100,
-        position: { x: 50, y: 150 },
-        health: 100,
-        unitType: { wolf: {} },
-        state: { idle: {} }
-      },
-      {
-        id: 3,
-        owner: { opponent: {} },
-        target: null,
-        speedMultiplier: 100,
-        position: { x: 750, y: 750 },
-        health: 100,
-        unitType: { wolf: {} },
-        state: { idle: {} }
-      },
-      {
-        id: 4,
-        owner: { opponent: {} },
-        target: null,
-        speedMultiplier: 100,
-        position: { x: 650, y: 750 },
-        health: 250,
-        unitType: { bear: {} },
-        state: { idle: {} }
-      },
+
+    // place piece on top of another one
+    await assert.rejects(async () => {
+      await program.rpc.placePieceHidden(6, 7, 2, {
+        accounts: {
+          game: gamePDAKey,
+          invoker: oBurner.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [oBurner],
+      });
+    });
+    // place piece with same hand id
+    await assert.rejects(async () => {
+      await program.rpc.placePieceHidden(5, 0, 2, {
+        accounts: {
+          game: gamePDAKey,
+          invoker: iBurner.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [iBurner],
+      });
+    });
+    // place piece out of bounds
+    await assert.rejects(async () => {
+      await program.rpc.placePieceHidden(8, 0, 3, {
+        accounts: {
+          game: gamePDAKey,
+          invoker: iBurner.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [iBurner],
+      });
+    });
+    // place piece on wrong side
+    await assert.rejects(async () => {
+      await program.rpc.placePieceHidden(4, 0, 3, {
+        accounts: {
+          game: gamePDAKey,
+          invoker: oBurner.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [oBurner],
+      });
+    });
+
+    assert.deepStrictEqual(account.entities.all[5],
       {
         id: 5,
         owner: { opponent: {} },
         target: null,
         speedMultiplier: 100,
         position: { x: 350, y: 550 },
-        health: 150,
-        unitType: { bull: {} },
+        health: 0,
+        unitType: { hidden: {handPosition: 3} },
         state: { idle: {} }
-      }
-    ], 'Incorrect pieces placed');
+      }, 'Incorrect pieces placed');
+    assert.deepStrictEqual((account.entities.all as Array<any>).length, 6, 'Incorrect pieces placed');
+  });
+
+  it('reveal 2', async () => {
+    await program.rpc.revealSecond([...Buffer.from(initializerReveal2, 'hex')], [...Buffer.from(initializerSecret2, 'hex')], {
+      accounts: {
+        game: gamePDAKey,
+        invoker: iBurner.publicKey,
+      },
+      signers: [iBurner]
+    });
+    await assert.rejects(async () => {
+      await program.rpc.revealSecond([...Buffer.from(initializerReveal2, 'hex')], [...Buffer.from(initializerSecret2, 'hex')], {
+        accounts: {
+          game: gamePDAKey,
+          invoker: oBurner.publicKey,
+        },
+        signers: [oBurner]
+      });
+    });
+    await program.rpc.revealSecond([...Buffer.from(opponentReveal2, 'hex')], [...Buffer.from(opponentSecret2, 'hex')], {
+      accounts: {
+        game: gamePDAKey,
+        invoker: oBurner.publicKey,
+      },
+      signers: [oBurner]
+    });
+    const account = await program.account.game.fetch(gamePDAKey);
+    assert.deepStrictEqual(account.reveal2, [
+      107, 165,  64, 200,  92, 185, 127,
+      157,  83, 226, 151,  38,  72, 206,
+      255,  39, 127, 141, 243, 149, 183,
+      111, 147,  17, 153, 208,  94, 122,
+      173, 237, 221, 237
+    ], 'Incorrect reveal');
+    assert.deepStrictEqual(account.state, 3, 'Wrong state');
+    for (const entity of account.entities.all as Array<any>) {
+      assert(entity.unitType['hidden'] === undefined, "no hidden units left");
+    }
   });
 
   it('crank', async ()=>{
 
-    for (let i=0; i<20; i+=1) {
-      await program.rpc.crankGame(5, {
-        accounts: {
-          game: gamePDAKey,
-          invoker: opponent.publicKey,
-        },
-        signers: [opponent],
-      });
-    }
+    await program.rpc.crankGame(5, {
+      accounts: {
+        game: gamePDAKey,
+        invoker: oBurner.publicKey,
+      },
+      signers: [oBurner],
+    });
     const account = await program.account.game.fetch(gamePDAKey);
     console.log("pda account", account);
-    assert.deepStrictEqual(account.winCondition, {initializer: {} }, 'Wrong winner');
+    assert.deepStrictEqual(account.winCondition, {inProgress: {} }, 'Wrong winner');
   });
   it('reject incorrect claim', async ()=>{
     assert.rejects(async () => {
@@ -247,12 +307,35 @@ describe('autochess', async () => {
     });
   });
 
+  it('crank to finality', async ()=>{
+
+    for (let i = 0; i<15; i++) {
+      await program.rpc.crankGame(5, {
+        accounts: {
+          game: gamePDAKey,
+          invoker: iBurner.publicKey,
+        },
+        signers: [iBurner],
+      });
+    }
+    for (let i = 0; i<3; i++) {
+      await program.rpc.crankGame(20, {
+        accounts: {
+          game: gamePDAKey,
+          invoker: iBurner.publicKey,
+        },
+        signers: [iBurner],
+      });
+    }
+    const account = await program.account.game.fetch(gamePDAKey);
+    console.log("entities", JSON.stringify(account.entities, null, 2));
+    assert.deepStrictEqual(account.winCondition, {initializer: {} }, 'Wrong winner');
+  });
+
   it('correct claim', async ()=>{
     const account = await program.account.game.getAccountInfo(program.provider.wallet.publicKey);
     let lamports = account.lamports;
-    await program.rpc.claimVictory(
-      'game 1',
-      gamePDA[1], {
+    await program.rpc.claimVictory({
       accounts: {
         game: gamePDAKey,
         invoker: program.provider.wallet.publicKey,
