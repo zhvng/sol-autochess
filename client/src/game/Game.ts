@@ -26,11 +26,6 @@ class Game {
     private readonly logicUpdatePeriod = 200; //ms
 
     constructor() {
-        
-        this.cssRenderer = new CSS2DRenderer();
-        this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
-        this.cssRenderer.domElement.style.position = 'absolute';
-        this.cssRenderer.domElement.style.top = '0px';
 
         this.renderer = new THREE.WebGLRenderer({
           antialias: true,
@@ -40,6 +35,11 @@ class Game {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.toneMapping = THREE.CineonToneMapping;
+
+        this.cssRenderer = new CSS2DRenderer();
+        this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
+        this.cssRenderer.domElement.style.position = 'absolute';
+        this.cssRenderer.domElement.style.top = '0px';
 
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color('#ADD8E6');
@@ -100,9 +100,9 @@ class Game {
             this.placePiece(2, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
             this.placePiece(3, 2, UnitTypeWasm.Bear, ControllerWasm.Initializer);
             this.placePiece(0, 0, UnitTypeWasm.Bull, ControllerWasm.Initializer);
-            this.placePiece(5, 5, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
-            this.placePiece(4, 5, UnitTypeWasm.Bear, ControllerWasm.Opponent);
-            this.placePiece(7, 5, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
+            this.placePiece(5, 7, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
+            this.placePiece(4, 7, UnitTypeWasm.Bear, ControllerWasm.Opponent);
+            this.placePiece(7, 7, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
 
             
             setTimeout(()=>{this.simulationStarted = true;}, 2000);

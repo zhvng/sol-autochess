@@ -7,7 +7,7 @@ class HealthBar {
     private readonly healthBarWidthPx: number = 50;
     private readonly healthBarHeightPx: number = 9.5;
     private health: number;
-    private slidingRedBarSize: number; 
+    private slidingBarSize: number; 
     private readonly bar: CSS2DObject;
     constructor(
         private readonly group: THREE.Group, 
@@ -15,7 +15,7 @@ class HealthBar {
         private startingHealth: number
     ){
         this.health = this.startingHealth;
-        this.slidingRedBarSize = 0;
+        this.slidingBarSize = 0;
 
         const color = this.controller === ControllerWasm.Initializer ? '#33ccff' : '#ff6666';
 
@@ -39,7 +39,7 @@ class HealthBar {
 
         const slidingRedBarDiv = document.createElement( 'div' );
         healthBarDiv.append(slidingRedBarDiv);
-        slidingRedBarDiv.style.width = `${this.slidingRedBarSize}%`;
+        slidingRedBarDiv.style.width = `${this.slidingBarSize}%`;
         slidingRedBarDiv.style.height = '100%';
         slidingRedBarDiv.style.left = '100%';
         slidingRedBarDiv.style.position = 'absolute';
@@ -64,10 +64,10 @@ class HealthBar {
         this.group.add(healthBarGroup);
     }
     public update(timeElapsed: number) {
-        if (this.slidingRedBarSize > 0) {
-            this.slidingRedBarSize = Math.max(this.slidingRedBarSize - timeElapsed / 50, 0);
+        if (this.slidingBarSize > 0) {
+            this.slidingBarSize = Math.max(this.slidingBarSize - timeElapsed / 50, 0);
             const slidingRedBarDiv = this.bar.element.children[1]! as HTMLDivElement;
-            slidingRedBarDiv.style.width = `${this.slidingRedBarSize}%`;
+            slidingRedBarDiv.style.width = `${this.slidingBarSize}%`;
         }
     }
 
@@ -81,10 +81,10 @@ class HealthBar {
 
             // set sliding red bar
             if (difference > 0) {
-                this.slidingRedBarSize += difference/this.startingHealth * 100;
-                const slidingRedBarDiv = this.bar.element.children[1]! as HTMLDivElement;
-                slidingRedBarDiv.style.width = `${this.slidingRedBarSize}%`;
-                slidingRedBarDiv.style.left = `${percentage}%`;
+                this.slidingBarSize += difference/this.startingHealth * 100;
+                const slidingBarDiv = this.bar.element.children[1]! as HTMLDivElement;
+                slidingBarDiv.style.width = `${this.slidingBarSize}%`;
+                slidingBarDiv.style.left = `${percentage}%`;
             }
         }
     }

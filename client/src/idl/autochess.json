@@ -1,0 +1,815 @@
+{
+  "version": "0.1.0",
+  "name": "autochess",
+  "instructions": [
+    {
+      "name": "createGame",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "initializer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "gameId",
+          "type": "string"
+        },
+        {
+          "name": "burnerWallet",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "wager",
+          "type": "u64"
+        },
+        {
+          "name": "commitment1",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "commitment2",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "joinGame",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "invoker",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "burnerWallet",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "commitment1",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "commitment2",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "revealFirst",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "invoker",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "reveal1",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "secret",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "placePieceHidden",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "invoker",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "gridX",
+          "type": "u16"
+        },
+        {
+          "name": "gridY",
+          "type": "u16"
+        },
+        {
+          "name": "handPosition",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "revealSecond",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "invoker",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "reveal2",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "secret",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "crankGame",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "invoker",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "steps",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "claimVictory",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "invoker",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "initializer",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Game",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": "u8"
+          },
+          {
+            "name": "wager",
+            "type": "u64"
+          },
+          {
+            "name": "winCondition",
+            "type": {
+              "defined": "WinCondition"
+            }
+          },
+          {
+            "name": "initializer",
+            "type": "publicKey"
+          },
+          {
+            "name": "opponent",
+            "type": "publicKey"
+          },
+          {
+            "name": "iBurner",
+            "type": "publicKey"
+          },
+          {
+            "name": "oBurner",
+            "type": "publicKey"
+          },
+          {
+            "name": "iCommitment1",
+            "type": {
+              "option": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
+          },
+          {
+            "name": "iCommitment2",
+            "type": {
+              "option": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
+          },
+          {
+            "name": "oCommitment1",
+            "type": {
+              "option": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
+          },
+          {
+            "name": "oCommitment2",
+            "type": {
+              "option": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
+          },
+          {
+            "name": "iHasRevealed",
+            "type": "bool"
+          },
+          {
+            "name": "oHasRevealed",
+            "type": "bool"
+          },
+          {
+            "name": "reveal1",
+            "type": {
+              "option": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
+          },
+          {
+            "name": "reveal2",
+            "type": {
+              "option": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
+          },
+          {
+            "name": "pieceTimer",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "entities",
+            "type": {
+              "defined": "Entities"
+            }
+          },
+          {
+            "name": "tick",
+            "type": "u32"
+          },
+          {
+            "name": "randomCalls",
+            "type": "u16"
+          }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "Entities",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "all",
+            "type": {
+              "vec": {
+                "defined": "Entity"
+              }
+            }
+          },
+          {
+            "name": "counter",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Entity",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "owner",
+            "type": {
+              "defined": "Controller"
+            }
+          },
+          {
+            "name": "target",
+            "type": {
+              "option": "u16"
+            }
+          },
+          {
+            "name": "speedMultiplier",
+            "type": "u16"
+          },
+          {
+            "name": "position",
+            "type": {
+              "defined": "Location"
+            }
+          },
+          {
+            "name": "health",
+            "type": "u16"
+          },
+          {
+            "name": "unitType",
+            "type": {
+              "defined": "UnitType"
+            }
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": "EntityState"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "EntityResult",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "entity",
+            "type": {
+              "defined": "&'aEntity"
+            }
+          },
+          {
+            "name": "distance",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Projectiles",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "all",
+            "type": {
+              "vec": {
+                "defined": "Projectile"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RangedAttack",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "position",
+            "type": {
+              "defined": "Location"
+            }
+          },
+          {
+            "name": "targetId",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Explosion",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "position",
+            "type": {
+              "defined": "Location"
+            }
+          },
+          {
+            "name": "targetId",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StaticTarget",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "position",
+            "type": {
+              "defined": "Location"
+            }
+          },
+          {
+            "name": "target",
+            "type": {
+              "defined": "Location"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Location",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "x",
+            "type": "u16"
+          },
+          {
+            "name": "y",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EntityState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Idle"
+          },
+          {
+            "name": "Moving",
+            "fields": [
+              {
+                "name": "to",
+                "type": {
+                  "defined": "Location"
+                }
+              }
+            ]
+          },
+          {
+            "name": "Dead"
+          },
+          {
+            "name": "Attack",
+            "fields": [
+              {
+                "name": "progress",
+                "type": "u16"
+              },
+              {
+                "name": "attack_on",
+                "type": "u16"
+              },
+              {
+                "name": "target_id",
+                "type": "u16"
+              }
+            ]
+          },
+          {
+            "name": "Ability",
+            "fields": [
+              {
+                "name": "progress",
+                "type": "u16"
+              },
+              {
+                "name": "cast_on",
+                "type": "u16"
+              },
+              {
+                "name": "release_on",
+                "type": "u16"
+              }
+            ]
+          },
+          {
+            "name": "Ult",
+            "fields": [
+              {
+                "name": "progress",
+                "type": "u16"
+              },
+              {
+                "name": "cast_on",
+                "type": "u16"
+              },
+              {
+                "name": "release_on",
+                "type": "u16"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Controller",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Opponent"
+          },
+          {
+            "name": "Initializer"
+          },
+          {
+            "name": "Contract"
+          },
+          {
+            "name": "Graveyard"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Apply",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Damage",
+            "fields": [
+              {
+                "name": "amount",
+                "type": "u16"
+              },
+              {
+                "name": "target_id",
+                "type": "u16"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "WinCondition",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Initializer"
+          },
+          {
+            "name": "Opponent"
+          },
+          {
+            "name": "Tie"
+          },
+          {
+            "name": "InProgress"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Projectile",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "None"
+          },
+          {
+            "name": "RangedAttack",
+            "fields": [
+              {
+                "defined": "RangedAttack"
+              }
+            ]
+          },
+          {
+            "name": "Explosion",
+            "fields": [
+              {
+                "defined": "Explosion"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "UnitType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Wolf"
+          },
+          {
+            "name": "Bull"
+          },
+          {
+            "name": "Bear"
+          },
+          {
+            "name": "Hidden",
+            "fields": [
+              {
+                "name": "hand_position",
+                "type": "u8"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "AttackType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Melee"
+          },
+          {
+            "name": "Ranged",
+            "fields": [
+              {
+                "name": "speed",
+                "type": "u16"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Hello",
+      "msg": "This is an error message clients will automatically display"
+    },
+    {
+      "code": 6001,
+      "name": "TimeError",
+      "msg": "Time Limit Exceeded"
+    },
+    {
+      "code": 6002,
+      "name": "RevealError",
+      "msg": "Error revealing commitment"
+    },
+    {
+      "code": 6003,
+      "name": "ClaimError",
+      "msg": "Error claiming victory"
+    }
+  ],
+  "metadata": {
+    "address": "AwrQQpL4QssWCUCjqrmZ1uySFGBR32jhhhSwm7A57tcS"
+  }
+}

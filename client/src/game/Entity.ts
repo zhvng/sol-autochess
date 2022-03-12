@@ -4,6 +4,7 @@ import { ControllerWasm, UnitTypeWasm } from "wasm-client";
 import GameController from "./GameController";
 import HealthBar from "./HealthBar";
 import { Animations, boardCoordinatesTo3D, cloneModel, UnitState } from "./Utils";
+import TWEEN from '@tweenjs/tween.js';
 
 class Entity {
     private movementTarget?: Vector3;
@@ -64,7 +65,13 @@ class Entity {
                 this.animations.set(Animations.Attack, this.mixer.clipAction(new AnimationClip('Idle', 2,[bearHeadMove, new VectorKeyframeTrack( 'Bear_Neck_01SHJnt_20.position', [ 0, 1, 2 ], [ .05, 0, 0, .1, -.02, 0, 0, 0, 0 ] ) ])).setLoop(LoopOnce, 1).setEffectiveTimeScale(.8));
                 this.animations.set(Animations.Idle, this.mixer.clipAction(new AnimationClip('Idle', 3,[])));
 
-                const bearDieClip = new AnimationClip('Action', 3, [ new VectorKeyframeTrack( '.position', [ 0, 1], [ 0, 0, 0, 0, -1.5, 0])]);
+                const axis = new Vector3( 0, 0, 1 );
+                const qInitial = new Quaternion().setFromAxisAngle( axis, 0 );
+                const qFinal = new Quaternion().setFromAxisAngle( axis, -Math.PI/2 );
+
+                const quaternionKF = new QuaternionKeyframeTrack( '.quaternion', [ 0, 1 ], [ qInitial.x, qInitial.y, qInitial.z, qInitial.w, qFinal.x, qFinal.y, qFinal.z, qFinal.w ] );
+                const bearDieClip = new AnimationClip('Action', 3, [ quaternionKF ] );
+                // const bearDieClip = new AnimationClip('Action', 3, [ new VectorKeyframeTrack( '.position', [ 0, 1], [ 0, 0, 0, 0, -1.5, 0])]);
                 const bearDead = this.mixer.clipAction(bearDieClip).setLoop(LoopOnce, 1)
                 bearDead.clampWhenFinished = true;
 
@@ -75,10 +82,10 @@ class Entity {
         }
         switch (this.controller) {
             case ControllerWasm.Initializer:
-                this.model.rotation.y = Math.PI;
+                this.unit.rotation.y = Math.PI;
                 break;
             case ControllerWasm.Opponent:
-                this.model.rotation.y = 0;
+                this.unit.rotation.y = 0;
                 break;
         }
         this.previousAnimation = Animations.Walk;
@@ -87,14 +94,15 @@ class Entity {
     }
 
     public update(timeElapsed: number): void {
+        TWEEN.update()
 
         if (this.mixer !== undefined) this.mixer.update( timeElapsed / 1000 );
         if (this.movementTarget !== undefined && this.state !== UnitState.Dead) {
             const displacementVector = this.movementTarget.clone().sub(this.unit.position);
             const timeRatio = timeElapsed/this.logicUpdatePeriod;
             const newPosition = this.unit.position.clone().add(displacementVector.clone().multiplyScalar(timeRatio));
-
-            this.smoothLookAt(this.unit, this.movementTarget, .2);
+            console.log(this.movementTarget);
+            this.smoothLookAt(this.unit, this.movementTarget, 300);
             this.unit.position.set(newPosition.x, newPosition.y, newPosition.z);
         }
         if (this.healthBar !== undefined) {
@@ -115,7 +123,7 @@ class Entity {
             if (this.attackTargetId !== targetId) {
                 const target_position = this.gameController.getEntityById(targetId).position ?? {x: 400, y: 400};
                 this.attackTargetId = targetId
-                this.smoothLookAt(this.unit, boardCoordinatesTo3D(new Vector2(target_position.x, target_position.y)), .5);
+                this.smoothLookAt(this.unit, boardCoordinatesTo3D(new Vector2(target_position.x, target_position.y)), 500);
             }
             this.setState(UnitState.Attacking);
         } else {
@@ -146,11 +154,14 @@ class Entity {
         }
     }
 
-    private smoothLookAt(model: Object3D, target: Vector3, alpha: number) {
+    private smoothLookAt(model: Object3D, target: Vector3, timeMs: number) {
         const mock = new Object3D();
         mock.position.set(model.position.x,model.position.y, model.position.z );
         mock.lookAt(target);
-        this.model.quaternion.slerp(mock.quaternion, alpha);
+        new TWEEN.Tween({t:0})
+            .to({t:1}, timeMs)
+            .onUpdate((tween)=>model.quaternion.slerp(mock.quaternion, tween.t))
+            .start();
     }
 
     public setState(state: UnitState) {
