@@ -141,8 +141,6 @@ describe('autochess', async () => {
         signers: [opponent]
       });
     });
-
-
   });
 
   it('reveals!', async () => {
@@ -304,6 +302,7 @@ describe('autochess', async () => {
       accounts: {
         game: gamePDAKey,
         invoker: iBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
       },
       signers: [iBurner]
     });
@@ -312,6 +311,7 @@ describe('autochess', async () => {
         accounts: {
           game: gamePDAKey,
           invoker: oBurner.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
         },
         signers: [oBurner]
       });
@@ -320,6 +320,7 @@ describe('autochess', async () => {
       accounts: {
         game: gamePDAKey,
         invoker: oBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
       },
       signers: [oBurner]
     });
@@ -404,4 +405,81 @@ describe('autochess', async () => {
     lamports -= (await program.account.game.getAccountInfo(program.provider.wallet.publicKey)).lamports;
     assert.deepStrictEqual(lamports, -2004365888, 'Incorrect lamports deposited');
   });
+
+  const inactiveGamePDA = (await anchor.web3.PublicKey.findProgramAddress(
+    [
+      Buffer.from("game 3"),
+      Buffer.from('Game'),
+    ],
+    program.programId
+  ));
+  const inactiveGameKey = inactiveGamePDA[0];
+
+  it('claim inactivity fail!', async () => {
+    await program.rpc.createGame(
+      "game 3", 
+      iBurner.publicKey.toBytes(),
+      new anchor.BN(anchor.web3.LAMPORTS_PER_SOL), 
+      initializerCommitment1, 
+      initializerCommitment2, 
+      {
+        accounts: {
+          game: inactiveGameKey,
+          initializer: program.provider.wallet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
+    });
+    await program.rpc.joinGame(
+      Array.from(oBurner.publicKey.toBytes()), opponentCommitment1, opponentCommitment2, {
+      accounts: {
+        game: inactiveGameKey,
+        invoker: opponent.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      },
+      signers: [opponent]
+    });
+
+    await program.rpc.revealFirst([...Buffer.from(opponentReveal1, 'hex')], [...Buffer.from(opponentSecret1, 'hex')], {
+      accounts: {
+        game: inactiveGameKey,
+        invoker: oBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [oBurner]
+    });
+
+    assert.rejects(async () => {
+      await program.rpc.claimInactivity({
+        accounts: {
+          game: inactiveGameKey,
+          invoker: opponent.publicKey,
+          initializer: program.provider.wallet.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [opponent]
+      });
+    });
+  });
+  it('claim inactivity success test (may take a while)', (done)=>{
+    setTimeout(async ()=>{
+      console.log('tying to claim inactivity again');
+      try{
+        console.log(opponent.publicKey);
+        await program.rpc.claimInactivity({
+          accounts: {
+            game: inactiveGameKey,
+            invoker: opponent.publicKey,
+            initializer: program.provider.wallet.publicKey,
+            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+          },
+          signers: [opponent]
+        });
+        const accounts = await program.account.game.all();
+        assert.deepStrictEqual(accounts.length, 0, 'accounts has not been closed');
+        done();
+      } catch(error) {
+        console.log(error);
+      }
+    }, 61 * 1000)
+  })
 });

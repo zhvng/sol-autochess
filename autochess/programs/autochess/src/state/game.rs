@@ -39,8 +39,12 @@ pub struct Game {
     pub reveal_1: Option<[u8; 32]>,
     pub reveal_2: Option<[u8; 32]>,
 
-    /// The time at which placing new pieces is disabled.
+    /// Option of timestamp at which placing new pieces is disabled.
     pub piece_timer: Option<i64>,
+    /// Option of timestamp at which initializer is considered inactive. If the timestamp is reached, victory can be claimed by opponent
+    pub i_inactivity_timer: Option<i64>,
+    /// Option of timestamp at which opponent is considered inactive. If the timestamp is reached, victory can be claimed by initializer
+    pub o_inactivity_timer: Option<i64>,
 
     pub entities: Entities,
 

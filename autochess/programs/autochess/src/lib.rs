@@ -61,6 +61,42 @@ pub mod autochess {
         Ok(())
     }
 
+    /// If other player is inactive, claim the wager.
+    /// Make sure to set inactivity timers on every step that requries both players to make a transaction before advancing the state.
+    pub fn claim_inactivity(ctx: Context<ClaimInactivity>) -> ProgramResult {
+        let game = &mut ctx.accounts.game;
+        let clock = &ctx.accounts.clock;
+        let invoker_is_initializer = game.initializer == *ctx.accounts.invoker.key;
+        let inactivity_timer = if invoker_is_initializer {
+            game.o_inactivity_timer
+        } else {
+            game.i_inactivity_timer
+        };
+        let amount = game.wager.checked_mul(2).ok_or(ProgramError::InvalidArgument)?;
+        match inactivity_timer {
+            Some(timestamp) => {
+                // if timer is expired, drain account
+                if clock.unix_timestamp > timestamp {
+                    **ctx.accounts.invoker.try_borrow_mut_lamports()? = ctx.accounts.invoker
+                        .lamports()
+                        .checked_add(amount)
+                        .ok_or(ProgramError::InvalidArgument)?;
+                    **game.to_account_info().try_borrow_mut_lamports()? = game
+                        .to_account_info()
+                        .lamports()
+                        .checked_sub(amount)
+                        .ok_or(ProgramError::InvalidArgument)?;
+                } else {
+                    return Err(ProgramError::InvalidArgument);
+                }
+            },
+            None => {
+                return Err(ProgramError::InvalidArgument);
+            }
+        }
+        Ok(())
+    }
+
     /// state = 0. Opponent joins game by passing in pda and enough sol to cover wager, as well as commitments
     /// Change state to 1.
     pub fn join_game(ctx: Context<JoinGame>, burner_wallet: [u8; 32], commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
@@ -90,25 +126,32 @@ pub mod autochess {
 
     /// state = 1. Each player reveals their commitments. They are xor'd to get a source of randomness for the drawing phase
     /// When both players reveal, state is changed to 2.
+    /// Inactivity timer is set for opposing player on a succesful reveal.
+    /// After both players reveal, piece timer is set.
     pub fn reveal_first(ctx: Context<RevealFirst>, reveal_1: [u8; 32], secret: [u8; 32] ) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         let invoker_is_initializer = game.i_burner == *ctx.accounts.invoker.key;
-        msg!("{:?}", game.reveal_1);
-        msg!("{:?}", reveal_1);
+        let clock = &ctx.accounts.clock;
         
-        // Validate reveal
+        // opposing player will be inactive 60 seconds after the first player's reveal
+        let inactivity_timer: i64 = clock.unix_timestamp + 60;
+        // Validate reveal and set inactivity timer for opponent.
         if invoker_is_initializer && !game.i_has_revealed {
             if !validate_reveal(&game.i_commitment_1.unwrap(), &reveal_1, &secret) {
                 return Err(ErrorCode::RevealError.into());
             }
             game.i_has_revealed = true;
             game.i_commitment_1 = None;
+
+            game.o_inactivity_timer = Some(inactivity_timer);
         } else if !invoker_is_initializer && !game.o_has_revealed {
             if !validate_reveal(&game.o_commitment_1.unwrap(), &reveal_1, &secret) {
                 return Err(ErrorCode::RevealError.into());
             }
             game.o_has_revealed = true;
             game.o_commitment_1 = None;
+
+            game.i_inactivity_timer = Some(inactivity_timer);
         } else {
             return Err(ErrorCode::RevealError.into());
         }
@@ -132,15 +175,19 @@ pub mod autochess {
             game.i_has_revealed = false;
             game.o_has_revealed = false;
 
-            // (todo) A 2 minute (+ a few seconds) timer is started. Once this timer is up, disable piece placement so its safe to reveal.
-            let timer: i64 = 60 * 2 + 5;
-            game.piece_timer = Some(ctx.accounts.clock.unix_timestamp + timer);
+            // Any inactivity timers are stopped because both players have revealed
+            game.o_inactivity_timer = None;
+            game.i_inactivity_timer = None;
+
+            // A 2 minute (+ a few seconds) timer is started. Once this timer is up, piece placement is disabled so its safe to reveal.
+            let piece_timer: i64 = clock.unix_timestamp + 60 * 2 + 5;
+            game.piece_timer = Some(piece_timer);
         }
         Ok(())
     }
 
     /// state = 2. Place a piece without revealing its type. Reveal its position in your hand.
-    /// When timer expires, you cannot place anymore pieces.
+    /// When piece timer expires, you cannot place anymore pieces.
     pub fn place_piece_hidden(ctx: Context<PlacePiece>, grid_x: u16, grid_y: u16, hand_position: u8) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         let player_type = game.get_player_type(*ctx.accounts.invoker.key);
@@ -159,22 +206,30 @@ pub mod autochess {
     }
     /// state = 2. Each player reveals their second commitments. This also reveals hidden pieces in game state.
     /// State is advanced to 3 once both are revealed.
+    /// Inactivity timer is set for opposing player on a succesful reveal.
     pub fn reveal_second(ctx: Context<RevealSecond>, reveal_2: [u8; 32], secret: [u8; 32] ) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         let player_type = game.get_player_type(*ctx.accounts.invoker.key);
+        let clock = &ctx.accounts.clock;
 
+        // opposing player will be inactive 60 seconds after the first player's reveal
+        let inactivity_timer: i64 = clock.unix_timestamp + 60;
         if player_type == Controller::Initializer && !game.i_has_revealed {
             if !validate_reveal(&game.i_commitment_2.unwrap(), &reveal_2, &secret) {
                 return Err(ErrorCode::RevealError.into());
             }
             game.i_has_revealed = true;
             game.i_commitment_2 = None;
+
+            game.o_inactivity_timer = Some(inactivity_timer);
         } else if player_type == Controller::Opponent && !game.o_has_revealed {
             if !validate_reveal(&game.o_commitment_2.unwrap(), &reveal_2, &secret) {
                 return Err(ErrorCode::RevealError.into());
             }
             game.o_has_revealed = true;
             game.o_commitment_2 = None;
+
+            game.i_inactivity_timer = Some(inactivity_timer);
         } else {
             return Err(ErrorCode::RevealError.into());
         }
@@ -197,6 +252,10 @@ pub mod autochess {
             game.state = 3;
             game.i_has_revealed = false;
             game.o_has_revealed = false;
+
+            // Any inactivity timers are stopped because both players have revealed
+            game.o_inactivity_timer = None;
+            game.i_inactivity_timer = None;
         }
         Ok(())
     }
@@ -207,7 +266,6 @@ pub mod autochess {
         let game = &mut ctx.accounts.game;
         let unit_map = units::get_unit_map();
         for _ in 0..steps {
-            sol_log_compute_units();
             game.step(&unit_map);
         }
         game.update_win_condition();
@@ -293,6 +351,22 @@ pub struct CancelGame<'info> {
 }
 
 #[derive(Accounts)]
+pub struct ClaimInactivity<'info> {
+    #[account(
+        mut,
+        constraint = game.initializer == *invoker.key 
+            || game.opponent == *invoker.key,
+        constraint = game.initializer == *initializer.key,
+        close = initializer,
+    )]
+    game: Account<'info, Game>,
+    #[account(mut)]
+    invoker: Signer<'info>,
+    initializer: UncheckedAccount<'info>,
+    clock: Sysvar<'info, Clock>,
+}
+
+#[derive(Accounts)]
 pub struct JoinGame<'info> {
     #[account(
         mut,
@@ -338,6 +412,7 @@ pub struct RevealSecond<'info> {
     )]
     game: Account<'info, Game>,
     invoker: Signer<'info>,
+    clock: Sysvar<'info, Clock>
 }
 
 #[derive(Accounts)]
