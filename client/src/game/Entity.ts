@@ -101,7 +101,6 @@ class Entity {
             const displacementVector = this.movementTarget.clone().sub(this.unit.position);
             const timeRatio = timeElapsed/this.logicUpdatePeriod;
             const newPosition = this.unit.position.clone().add(displacementVector.clone().multiplyScalar(timeRatio));
-            console.log(this.movementTarget);
             this.smoothLookAt(this.unit, this.movementTarget, 300);
             this.unit.position.set(newPosition.x, newPosition.y, newPosition.z);
         }

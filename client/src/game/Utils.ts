@@ -1,7 +1,14 @@
 import { Bone, Object3D, SkinnedMesh, Vector2, Vector3 } from "three"
 
-export enum GameState {
+export enum GameProgress {
+    WaitingForOpponent,
+    Reveal1,
+    WaitingForOpponentReveal1,
     PlacePieces,
+    Reveal2,
+    WaitingForOpponentReveal2,
+    InProgress,
+    End,
 }
 
 export enum Animations {

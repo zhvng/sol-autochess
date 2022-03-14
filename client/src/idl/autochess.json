@@ -60,6 +60,22 @@
       ]
     },
     {
+      "name": "cancelGame",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "initializer",
+          "isMut": true,
+          "isSigner": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "joinGame",
       "accounts": [
         {
@@ -257,7 +273,7 @@
           "isSigner": false
         },
         {
-          "name": "systemProgram",
+          "name": "opponent",
           "isMut": false,
           "isSigner": false
         }
@@ -790,21 +806,16 @@
   "errors": [
     {
       "code": 6000,
-      "name": "Hello",
-      "msg": "This is an error message clients will automatically display"
-    },
-    {
-      "code": 6001,
       "name": "TimeError",
       "msg": "Time Limit Exceeded"
     },
     {
-      "code": 6002,
+      "code": 6001,
       "name": "RevealError",
       "msg": "Error revealing commitment"
     },
     {
-      "code": 6003,
+      "code": 6002,
       "name": "ClaimError",
       "msg": "Error claiming victory"
     }

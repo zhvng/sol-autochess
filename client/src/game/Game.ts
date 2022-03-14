@@ -7,6 +7,10 @@ import Stats from 'three/examples/jsm/libs/stats.module';
 import GameController from "./GameController";
 import { ControllerWasm, UnitTypeWasm } from "wasm-client";
 import EntityManager from "./EntityManager";
+import { PublicKey } from "@solana/web3.js";
+import { AnchorWallet } from "@solana/wallet-adapter-react";
+import { Program } from "@project-serum/anchor";
+import { GameInputs } from "stores/useGameInputsStore";
 
 const stats = Stats();
 stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -19,13 +23,12 @@ class Game {
     private readonly board: Board;
     private readonly entityManager: EntityManager;
     private gameController?: GameController;
-    private simulationStarted: boolean = false;
 
     private previousRenderFrame: DOMHighResTimeStamp | undefined = undefined; //ms
     private previousLogicFrame: DOMHighResTimeStamp | undefined = undefined; //ms
     private readonly logicUpdatePeriod = 200; //ms
 
-    constructor() {
+    constructor(gamePDAKey: PublicKey, program: Program, gameInputs: GameInputs) {
 
         this.renderer = new THREE.WebGLRenderer({
           antialias: true,
@@ -58,7 +61,7 @@ class Game {
 
         this.entityManager = new EntityManager(this.scene, this.logicUpdatePeriod);
 
-        this.newGame();
+        this.newGame(gamePDAKey, program, gameInputs);
         this.loop();
     }
 
@@ -85,8 +88,8 @@ class Game {
         });
     }
 
-    public newGame() {
-        this.gameController = new GameController();
+    public newGame(gamePDAKey, program, gameInputs) {
+        this.gameController = new GameController(gamePDAKey, program, gameInputs);
         this.entityManager.attachToNewGame(this.gameController);
 
         setTimeout(()=>{
@@ -98,14 +101,12 @@ class Game {
             // this.placePiece(0, 5, UnitTypeWasm.Bear, ControllerWasm.Opponent);
 
             this.placePiece(2, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
-            this.placePiece(3, 2, UnitTypeWasm.Bear, ControllerWasm.Initializer);
-            this.placePiece(0, 0, UnitTypeWasm.Bull, ControllerWasm.Initializer);
-            this.placePiece(5, 7, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
-            this.placePiece(4, 7, UnitTypeWasm.Bear, ControllerWasm.Opponent);
-            this.placePiece(7, 7, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
+            this.placePiece(4, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
+            this.placePiece(3, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
+            this.placePiece(4, 6, UnitTypeWasm.Bull, ControllerWasm.Opponent);
+            this.placePiece(3, 5, UnitTypeWasm.Bear, ControllerWasm.Opponent);
+            this.placePiece(4, 7, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
 
-            
-            setTimeout(()=>{this.simulationStarted = true;}, 2000);
         }, 4000);
         // console.log(this.gameController.getEntities());
     }
@@ -125,7 +126,7 @@ class Game {
     }
 
     private updateGame() {
-        if (this.simulationStarted && this.gameController !== undefined) {
+        if (this.gameController !== undefined) {
             this.gameController.step();
             const entities: Array<any> = this.gameController.getEntities().all;
             this.entityManager.updateGame(entities);
