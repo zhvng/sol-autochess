@@ -4,7 +4,7 @@ use anchor_lang::{prelude::*};
 use state::game::Game;
 use state::units::UnitType;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("AwrQQpL4QssWCUCjqrmZ1uySFGBR32jhhhSwm7A57tcS");
 
 #[program]
 pub mod autochess {
@@ -12,7 +12,7 @@ pub mod autochess {
     use anchor_lang::solana_program::log::sol_log_compute_units;
     use state::units;
 
-    use crate::state::{game::{validate_reveal, WinCondition, draw_hand}, entities::Controller, units::UnitType};
+    use crate::state::{game::{validate_reveal, WinCondition}, entities::Controller, units::UnitType};
 
     use super::*;
 
@@ -43,6 +43,22 @@ pub mod autochess {
                 game.to_account_info(),
             ],
         )
+    }
+
+    /// If state is still 0 (waiting for opponent), Cancel game and send sol back to initializer
+    pub fn cancel_game(ctx: Context<CancelGame>) -> ProgramResult {
+        let game = &mut ctx.accounts.game;
+        let amount = game.wager;
+        **ctx.accounts.initializer.try_borrow_mut_lamports()? = ctx.accounts.initializer
+            .lamports()
+            .checked_add(amount)
+            .ok_or(ProgramError::InvalidArgument)?;
+        **game.to_account_info().try_borrow_mut_lamports()? = game
+            .to_account_info()
+            .lamports()
+            .checked_sub(amount)
+            .ok_or(ProgramError::InvalidArgument)?;
+        Ok(())
     }
 
     /// state = 0. Opponent joins game by passing in pda and enough sol to cover wager, as well as commitments
@@ -86,13 +102,13 @@ pub mod autochess {
                 return Err(ErrorCode::RevealError.into());
             }
             game.i_has_revealed = true;
-            game.i_commitment_1 = None; // save memory
+            game.i_commitment_1 = None;
         } else if !invoker_is_initializer && !game.o_has_revealed {
             if !validate_reveal(&game.o_commitment_1.unwrap(), &reveal_1, &secret) {
                 return Err(ErrorCode::RevealError.into());
             }
             game.o_has_revealed = true;
-            game.o_commitment_1 = None; // save memory
+            game.o_commitment_1 = None;
         } else {
             return Err(ErrorCode::RevealError.into());
         }
@@ -137,7 +153,7 @@ pub mod autochess {
         // place piece. fail if fails
         let placed = game.place_piece_hidden(player_type, grid_x, grid_y, hand_position);
         if placed == None {
-            return Err(ErrorCode::Hello.into());
+            return Err(ProgramError::InvalidArgument);
         }
         Ok(())
     }
@@ -152,13 +168,13 @@ pub mod autochess {
                 return Err(ErrorCode::RevealError.into());
             }
             game.i_has_revealed = true;
-            game.i_commitment_2 = None; // save memory
+            game.i_commitment_2 = None;
         } else if player_type == Controller::Opponent && !game.o_has_revealed {
             if !validate_reveal(&game.o_commitment_2.unwrap(), &reveal_2, &secret) {
                 return Err(ErrorCode::RevealError.into());
             }
             game.o_has_revealed = true;
-            game.o_commitment_2 = None; // save memory
+            game.o_commitment_2 = None;
         } else {
             return Err(ErrorCode::RevealError.into());
         }
@@ -222,6 +238,22 @@ pub mod autochess {
                 .checked_sub(amount)
                 .ok_or(ProgramError::InvalidArgument)?;
             
+        } else if game.win_condition == WinCondition::Tie {
+            // Send wager sol back 
+            let amount = game.wager;
+            **ctx.accounts.opponent.try_borrow_mut_lamports()? = invoker
+                .lamports()
+                .checked_add(amount)
+                .ok_or(ProgramError::InvalidArgument)?;
+            **ctx.accounts.initializer.try_borrow_mut_lamports()? = invoker
+                .lamports()
+                .checked_add(amount)
+                .ok_or(ProgramError::InvalidArgument)?;
+            **game.to_account_info().try_borrow_mut_lamports()? = game
+                .to_account_info()
+                .lamports()
+                .checked_sub(amount.checked_mul(2).ok_or(ProgramError::InvalidArgument)?)
+                .ok_or(ProgramError::InvalidArgument)?;
         } else {
             return Err(ErrorCode::ClaimError.into());
         }
@@ -238,13 +270,26 @@ pub struct CreateGame<'info> {
         constraint = game_id.len() < 30,
         seeds = [game_id.as_bytes(), b"Game"],
         bump,
-        space = 9000,
+        space = 500,
         payer = initializer, owner = *program_id,
     )]
     game: Account<'info, Game>,
     #[account(mut)]
     initializer: Signer<'info>,
     system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CancelGame<'info> {
+    #[account(
+        mut,
+        constraint = game.state == 0,
+        constraint = game.initializer == *initializer.key,
+        close = initializer,
+    )]
+    game: Account<'info, Game>,
+    #[account(mut)]
+    initializer: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -313,20 +358,19 @@ pub struct ClaimVictory<'info> {
         constraint = game.state == 3,
         constraint = game.initializer == *invoker.key || game.opponent == *invoker.key,
         constraint = game.initializer == *initializer.key,
+        constraint = game.opponent == *opponent.key,
         close = initializer,
     )]
     game: Account<'info, Game>,
     #[account(mut)]
     invoker: Signer<'info>,
     initializer: UncheckedAccount<'info>,
-    system_program: Program<'info, System>,
+    opponent: UncheckedAccount<'info>,
 }
 
 
 #[error]
 pub enum ErrorCode {
-    #[msg("This is an error message clients will automatically display")]
-    Hello,
     #[msg("Time Limit Exceeded")]
     TimeError,
     #[msg("Error revealing commitment")]

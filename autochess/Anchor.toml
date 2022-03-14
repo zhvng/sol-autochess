@@ -1,5 +1,8 @@
 [programs.localnet]
-autochess = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+autochess = "AwrQQpL4QssWCUCjqrmZ1uySFGBR32jhhhSwm7A57tcS"
+
+[programs.devnet]
+autochess = "AwrQQpL4QssWCUCjqrmZ1uySFGBR32jhhhSwm7A57tcS"
 
 [registry]
 url = "https://anchor.projectserum.com"

@@ -4,6 +4,7 @@ import { hash } from '@project-serum/anchor/dist/cjs/utils/sha256';
 import { Autochess } from '../target/types/autochess';
 import CryptoJS from 'crypto-js';
 import assert from 'assert';
+import bs58 from 'bs58';
 
 const program = anchor.workspace.Autochess as Program<Autochess>;
 describe('autochess', async () => {
@@ -55,7 +56,7 @@ describe('autochess', async () => {
       await program.provider.connection.requestAirdrop(opponent.publicKey, anchor.web3.LAMPORTS_PER_SOL*2),
       "confirmed"
     );
-    const tx = await program.rpc.createGame(
+    await program.rpc.createGame(
       "game 1", 
       iBurner.publicKey.toBytes(),
       new anchor.BN(anchor.web3.LAMPORTS_PER_SOL), 
@@ -70,13 +71,17 @@ describe('autochess', async () => {
     });
     const account = await program.account.game.fetch(gamePDAKey);
     assert.deepStrictEqual(account.initializer, program.provider.wallet.publicKey, 'Account was not correctly initialized');
-    const accountInfo = await program.account.game.getAccountInfo(gamePDAKey);
-    console.log(accountInfo);
+    console.log(await program.account.game.all([{
+      memcmp: {
+        offset: 8,
+        bytes: bs58.encode(Uint8Array.from([0])),
+      }
+    }]));
   });
 
   it('joins!', async () => {
-    const tx = await program.rpc.joinGame(
-      oBurner.publicKey.toBytes(), opponentCommitment1, opponentCommitment2, {
+    await program.rpc.joinGame(
+      Array.from(oBurner.publicKey.toBytes()), opponentCommitment1, opponentCommitment2, {
       accounts: {
         game: gamePDAKey,
         invoker: opponent.publicKey,
@@ -86,6 +91,58 @@ describe('autochess', async () => {
     });
     const account = await program.account.game.fetch(gamePDAKey);
     assert.deepStrictEqual(account.opponent, opponent.publicKey, 'Opponent did not correctly join');
+  });
+
+  it('cancel!', async () => {
+    const canceledGamePDA = (await anchor.web3.PublicKey.findProgramAddress(
+      [
+        Buffer.from("game 2"),
+        Buffer.from('Game'),
+      ],
+      program.programId
+    ));
+    const canceledGameKey = canceledGamePDA[0];
+    await program.rpc.createGame(
+      "game 2", 
+      iBurner.publicKey.toBytes(),
+      new anchor.BN(anchor.web3.LAMPORTS_PER_SOL), 
+      initializerCommitment1, 
+      initializerCommitment2, 
+      {
+        accounts: {
+          game: canceledGameKey,
+          initializer: program.provider.wallet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
+    });
+    assert.rejects(async () => {
+      await program.rpc.cancelGame({
+        accounts: {
+          game: canceledGameKey,
+          initializer: oBurner.publicKey,
+        },
+        signers: [oBurner]
+      });
+    });
+    await program.rpc.cancelGame({
+      accounts: {
+        game: canceledGameKey,
+        initializer: program.provider.wallet.publicKey,
+      },
+    });
+    assert.rejects(async () => {
+      await program.rpc.joinGame(
+        Array.from(oBurner.publicKey.toBytes()), opponentCommitment1, opponentCommitment2, {
+        accounts: {
+          game: canceledGameKey,
+          invoker: opponent.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
+        signers: [opponent]
+      });
+    });
+
+
   });
 
   it('reveals!', async () => {
@@ -292,6 +349,7 @@ describe('autochess', async () => {
     const account = await program.account.game.fetch(gamePDAKey);
     console.log("pda account", account);
     assert.deepStrictEqual(account.winCondition, {inProgress: {} }, 'Wrong winner');
+    // console.log(JSON.stringify(Uint8Array.from((await program.account.game.getAccountInfo(gamePDAKey)).data)))
   });
   it('reject incorrect claim', async ()=>{
     assert.rejects(async () => {
@@ -300,7 +358,7 @@ describe('autochess', async () => {
           game: gamePDAKey,
           invoker: opponent.publicKey,
           initializer: program.provider.wallet.publicKey,
-          systemProgram: anchor.web3.SystemProgram.programId,
+          opponent: opponent.publicKey,
         },
         signers: [opponent],
       });
@@ -340,10 +398,10 @@ describe('autochess', async () => {
         game: gamePDAKey,
         invoker: program.provider.wallet.publicKey,
         initializer: program.provider.wallet.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
+        opponent: opponent.publicKey,
       },
     });
     lamports -= (await program.account.game.getAccountInfo(program.provider.wallet.publicKey)).lamports;
-    assert.deepStrictEqual(lamports, -2063525888, 'Incorrect lamports deposited');
+    assert.deepStrictEqual(lamports, -2004365888, 'Incorrect lamports deposited');
   });
 });
