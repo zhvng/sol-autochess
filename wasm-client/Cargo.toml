@@ -12,7 +12,6 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 wasm-bindgen = {version = "0.2.79", features = ["serde-serialize"]}
-js-sys = "0.3.56"
 autochess = { path = "../autochess/programs/autochess" }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by

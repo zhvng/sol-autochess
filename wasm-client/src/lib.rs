@@ -1,12 +1,10 @@
 extern crate autochess;
-extern crate js_sys;
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, convert::TryInto};
 
-use js_sys::{Uint16Array, Array};
 use wasm_bindgen::prelude::*;
 
-use autochess::state::{game::Game, units::{self, UnitType, Unit}, entities::Controller};
+use autochess::state::{game::Game, game::draw_hand, units::{self, UnitType, Unit}, entities::Controller};
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
@@ -105,4 +103,12 @@ impl WasmState {
     pub fn get_entity_by_id(&mut self, id: u16) -> JsValue {
         JsValue::from_serde(&self.game.entities.get_by_id_mut(id)).unwrap()
     }
+}
+
+#[wasm_bindgen]
+pub fn draw_private_hand(finished_reveal_1: &[u8], player_reveal_2: &[u8]) -> JsValue {
+    JsValue::from_serde(
+        &draw_hand(finished_reveal_1.try_into().expect("slice with incorrect length"), 
+            player_reveal_2.try_into().expect("slice with incorrect length")
+        )).unwrap()
 }
