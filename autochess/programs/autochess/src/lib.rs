@@ -299,11 +299,11 @@ pub mod autochess {
         } else if game.win_condition == WinCondition::Tie {
             // Send wager sol back 
             let amount = game.wager;
-            **ctx.accounts.opponent.try_borrow_mut_lamports()? = invoker
+            **ctx.accounts.opponent.try_borrow_mut_lamports()? = ctx.accounts.opponent
                 .lamports()
                 .checked_add(amount)
                 .ok_or(ProgramError::InvalidArgument)?;
-            **ctx.accounts.initializer.try_borrow_mut_lamports()? = invoker
+            **ctx.accounts.initializer.try_borrow_mut_lamports()? = ctx.accounts.initializer
                 .lamports()
                 .checked_add(amount)
                 .ok_or(ProgramError::InvalidArgument)?;
@@ -439,7 +439,9 @@ pub struct ClaimVictory<'info> {
     game: Account<'info, Game>,
     #[account(mut)]
     invoker: Signer<'info>,
+    #[account(mut)]
     initializer: UncheckedAccount<'info>,
+    #[account(mut)]
     opponent: UncheckedAccount<'info>,
 }
 
