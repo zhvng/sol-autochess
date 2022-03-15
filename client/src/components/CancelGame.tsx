@@ -6,13 +6,12 @@ import { getProgram } from 'utils/program';
 import { notify } from "../utils/notifications";
 import * as anchor from "@project-serum/anchor";
 import useGameListStore from 'stores/useGameListStore';
-import useGameInputsStore from 'stores/useGameInputsStore';
 import useUserSOLBalanceStore from 'stores/useUserSOLBalanceStore';
+import { getGameInputs } from 'utils/gameInputs';
 
 export const CancelGame = ({gamePDAKey}) => {
     const wallet = useAnchorWallet();
     const { connection } = useConnection();
-    const { gameInputs, getGameInputs } = useGameInputsStore();
     const { getGameList } = useGameListStore();
     const { getUserSOLBalance } = useUserSOLBalanceStore();
 
@@ -52,13 +51,13 @@ export const CancelGame = ({gamePDAKey}) => {
                     burnerWallet
                 ]
             });
-            getUserSOLBalance(program.provider.wallet.publicKey, program.provider.connection);
             notify({ type: 'success', message: 'Transaction successful!', txid: signature });
         } catch (error: any) {
             notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });
             console.log('error', `Transaction failed! ${error?.message}`, signature);
             return;
         }
+        getUserSOLBalance(program.provider.wallet.publicKey, program.provider.connection);
         getGameList(program);
     }, [wallet, notify, connection]);
 

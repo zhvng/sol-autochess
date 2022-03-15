@@ -9,6 +9,9 @@ export enum GameProgress {
     WaitingForOpponentReveal2,
     InProgress,
     End,
+    EndTie,
+    EndInitializerVictory,
+    EndOpponentVictory,
 }
 
 export enum Animations {

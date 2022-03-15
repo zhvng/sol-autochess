@@ -9,14 +9,13 @@ import { notify } from 'utils/notifications';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { getProgram } from 'utils/program';
-import useGameInputsStore from 'stores/useGameInputsStore';
+import { getGameInputs } from 'utils/gameInputs';
 
 
 const Play = () => {
     const router = useRouter()
     const wallet = useAnchorWallet();
     const { connection } = useConnection();
-    const { getGameInputs } = useGameInputsStore();
 
     const { id } = router.query
     console.log('id: ', id);
@@ -27,9 +26,9 @@ const Play = () => {
           if (id !== undefined && wallet !== undefined) {
             const gamePDAKey = new PublicKey(id);
             const program = getProgram(wallet, connection);
-            const gameInputs = getGameInputs(gamePDAKey, wallet.publicKey);
 
             await init();
+            const gameInputs = getGameInputs(gamePDAKey, wallet.publicKey);
             const game = new Game(gamePDAKey, program, gameInputs);
             const canvas = game.getCanvasElement();
             const cssRenderer = game.getCSSRendererElement();

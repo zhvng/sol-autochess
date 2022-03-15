@@ -76,6 +76,32 @@
       "args": []
     },
     {
+      "name": "claimInactivity",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "invoker",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "initializer",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "joinGame",
       "accounts": [
         {
@@ -210,6 +236,11 @@
           "name": "invoker",
           "isMut": false,
           "isSigner": true
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -269,12 +300,12 @@
         },
         {
           "name": "initializer",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {
           "name": "opponent",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         }
       ],
@@ -393,6 +424,18 @@
           },
           {
             "name": "pieceTimer",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "iInactivityTimer",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "oInactivityTimer",
             "type": {
               "option": "i64"
             }

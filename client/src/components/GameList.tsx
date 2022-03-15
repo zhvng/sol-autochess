@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { PublicKey } from '@solana/web3.js';
 import { JoinGame } from './JoinGame';
 import { CancelGame } from './CancelGame';
+import { OpenGame } from './OpenGame';
 
 const GameList = () => {
   const wallet = useAnchorWallet();
@@ -62,7 +63,7 @@ const GameEntry = ({account, publicKey, walletPubkey}) => {
       <td className='w-1/4 text-center'>1/2</td>
       <td className='w-1/4 text-center'>{
         (walletPubkey !== undefined && walletPubkey.toBase58() === account.initializer.toBase58()) ? 
-        <CancelGame gamePDAKey={publicKey as PublicKey}/>
+        <OpenGame gamePDAKey={publicKey as PublicKey}/>
         :
         <JoinGame gamePDAKey={publicKey as PublicKey} />
         }</td>

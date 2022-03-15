@@ -25,7 +25,6 @@ import { getProgram } from 'utils/program';
 import useGameListStore from 'stores/useGameListStore';
 import { CreateGame } from 'components/CreateGame';
 import { createHash } from 'crypto';
-import useGameInputsStore from 'stores/useGameInputsStore';
 import GameList from 'components/GameList';
 
 export const HomeView: FC = ({ }) => {

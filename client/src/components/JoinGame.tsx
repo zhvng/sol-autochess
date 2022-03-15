@@ -6,13 +6,12 @@ import useBurnerWalletStore from 'stores/useBurnerWalletStore';
 import { getProgram } from 'utils/program';
 import { notify } from "../utils/notifications";
 import * as anchor from "@project-serum/anchor";
-import useGameInputsStore from 'stores/useGameInputsStore';
 import { v4 as uuidv4 } from 'uuid';
+import { clearGameInputs, createGameInputs } from 'utils/gameInputs';
 
 export const JoinGame = ({gamePDAKey}) => {
     const wallet = useAnchorWallet();
     const { connection } = useConnection();
-    const { getGameInputs, clearGameInputs } = useGameInputsStore();
 
     const onClick = useCallback(async () => {
         if (!wallet) {
@@ -24,8 +23,14 @@ export const JoinGame = ({gamePDAKey}) => {
 
         let signature = '';
         try {
-            const gameInputs = getGameInputs(gamePDAKey, wallet.publicKey);
+            const gameInputs = createGameInputs(gamePDAKey, wallet.publicKey);
             const burnerWallet = Keypair.fromSecretKey(Uint8Array.from(gameInputs.burnerWalletSecret));
+
+            const topUpBurnerWalletIx: TransactionInstruction = SystemProgram.transfer({
+                fromPubkey: program.provider.wallet.publicKey,
+                toPubkey: burnerWallet.publicKey,
+                lamports: Math.floor(anchor.web3.LAMPORTS_PER_SOL / 1000), // .001 sol to cover tx fees
+            });
 
             signature = await program.rpc.joinGame(
                 burnerWallet.publicKey.toBytes(), 
@@ -35,7 +40,10 @@ export const JoinGame = ({gamePDAKey}) => {
                     game: gamePDAKey,
                     invoker: program.provider.wallet.publicKey,
                     systemProgram: anchor.web3.SystemProgram.programId,
-                }
+                },
+                postInstructions: [
+                    topUpBurnerWalletIx,
+                ],
             });
 
             notify({ type: 'success', message: 'Transaction successful!', txid: signature });

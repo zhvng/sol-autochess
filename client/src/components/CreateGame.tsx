@@ -6,15 +6,14 @@ import useBurnerWalletStore from 'stores/useBurnerWalletStore';
 import { getProgram } from 'utils/program';
 import { notify } from "../utils/notifications";
 import * as anchor from "@project-serum/anchor";
-import useGameInputsStore from 'stores/useGameInputsStore';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'next/router';
+import { clearGameInputs, createGameInputs } from 'utils/gameInputs';
 
 export const CreateGame: FC = () => {
     const router = useRouter();
     const wallet = useAnchorWallet();
     const { connection } = useConnection();
-    const { getGameInputs, clearGameInputs } = useGameInputsStore();
 
     const onClick = useCallback(async () => {
         if (!wallet) {
@@ -36,7 +35,7 @@ export const CreateGame: FC = () => {
 
         let signature = '';
         try {
-            const gameInputs = getGameInputs(gamePDAKey, wallet.publicKey);
+            const gameInputs = createGameInputs(gamePDAKey, wallet.publicKey);
             const burnerWallet = Keypair.fromSecretKey(Uint8Array.from(gameInputs.burnerWalletSecret));
 
             const topUpBurnerWalletIx: TransactionInstruction = SystemProgram.transfer({

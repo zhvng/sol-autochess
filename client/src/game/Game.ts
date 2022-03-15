@@ -10,7 +10,7 @@ import EntityManager from "./EntityManager";
 import { PublicKey } from "@solana/web3.js";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
 import { Program } from "@project-serum/anchor";
-import { GameInputs } from "stores/useGameInputsStore";
+import { GameInputs } from "utils/gameInputs";
 
 const stats = Stats();
 stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -53,10 +53,10 @@ class Game {
         this.camera = this.createCamera();
         this.board = this.createBoard();
 
-        const controls = new OrbitControls(
-            this.camera, this.cssRenderer.domElement);
-          controls.target.set(0, 10, 0);
-          controls.update();
+        // const controls = new OrbitControls(
+        //     this.camera, this.cssRenderer.domElement);
+        //   controls.target.set(0, 10, 0);
+        //   controls.update();
         this.setupWindow();
 
         this.entityManager = new EntityManager(this.scene, this.logicUpdatePeriod);
@@ -89,25 +89,25 @@ class Game {
     }
 
     public newGame(gamePDAKey, program, gameInputs) {
-        this.gameController = new GameController(gamePDAKey, program, gameInputs);
+        this.gameController = new GameController(this.scene, this.camera, gamePDAKey, program, gameInputs);
         this.entityManager.attachToNewGame(this.gameController);
 
-        setTimeout(()=>{
-            // this.placePiece(7, 2, UnitTypeWasm.Wolf, ControllerWasm.Initializer);
-            // this.placePiece(3, 2, UnitTypeWasm.Bear, ControllerWasm.Initializer);
-            // this.placePiece(6, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
-            // this.placePiece(0, 7, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
-            // this.placePiece(0, 6, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
-            // this.placePiece(0, 5, UnitTypeWasm.Bear, ControllerWasm.Opponent);
+        // setTimeout(()=>{
+        //     // this.placePiece(7, 2, UnitTypeWasm.Wolf, ControllerWasm.Initializer);
+        //     // this.placePiece(3, 2, UnitTypeWasm.Bear, ControllerWasm.Initializer);
+        //     // this.placePiece(6, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
+        //     // this.placePiece(0, 7, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
+        //     // this.placePiece(0, 6, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
+        //     // this.placePiece(0, 5, UnitTypeWasm.Bear, ControllerWasm.Opponent);
 
-            this.placePiece(2, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
-            this.placePiece(4, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
-            this.placePiece(3, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
-            this.placePiece(4, 6, UnitTypeWasm.Bull, ControllerWasm.Opponent);
-            this.placePiece(3, 5, UnitTypeWasm.Bear, ControllerWasm.Opponent);
-            this.placePiece(4, 7, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
+        //     this.placePiece(2, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
+        //     this.placePiece(4, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
+        //     this.placePiece(3, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
+        //     this.placePiece(4, 6, UnitTypeWasm.Bull, ControllerWasm.Opponent);
+        //     this.placePiece(3, 5, UnitTypeWasm.Bear, ControllerWasm.Opponent);
+        //     this.placePiece(4, 7, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
 
-        }, 4000);
+        // }, 4000);
         // console.log(this.gameController.getEntities());
     }
 
@@ -123,6 +123,7 @@ class Game {
     private update(timeElapsed: number): void {
         if (this.board !== undefined) this.board.update();
         if (this.entityManager !== undefined) this.entityManager.update(timeElapsed);
+        if (this.gameController !== undefined) this.gameController.update();
     }
 
     private updateGame() {

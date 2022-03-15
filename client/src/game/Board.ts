@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { LineSegments, Material, Mesh, PerspectiveCamera, Plane, Raycaster, Vector2, Vector3 } from "three";
 import GameController from "./GameController";
+import { boardCoordinatesTo3D, gridCoordinatesToBoardCoordinates } from "./Utils";
 
 class Board {
     private readonly boardMesh: Mesh;
@@ -8,6 +9,7 @@ class Board {
     private readonly interactiveBoardPlane: Mesh;
     private mouse?: Vector2;
     private readonly raycaster: Raycaster;
+    private readonly markers: THREE.Group;
 
     constructor(
         private readonly scene: THREE.Scene, 
@@ -19,6 +21,7 @@ class Board {
         this.interactiveBoardPlane = this.createInteractiveBoardPlane();
         this.createBoardIsland();
         this.mouse = new Vector2(1,1);
+        this.markers = this.createMarkers();
 
         window.addEventListener('mousemove', (event: MouseEvent)=>{
             this.mousemove(event);
@@ -85,6 +88,48 @@ class Board {
         plane.rotation.x = -Math.PI / 2;
         this.scene.add(plane);
         return plane
+    }
+    private createMarkers(): THREE.Group {
+        const texture = new THREE.TextureLoader().load( "../resources/textures/mountain.jpeg" );
+        const markers = new THREE.Group();
+        const markerRed = new THREE.Mesh(
+            new THREE.BoxBufferGeometry(2, 4, 4),
+            new THREE.MeshStandardMaterial({
+                color: '#ff4747',
+            })
+        );
+        const coordinatesRed = boardCoordinatesTo3D(gridCoordinatesToBoardCoordinates(new Vector2(8,4)));
+        markerRed.position.set(coordinatesRed.x, -1, coordinatesRed.z);
+        markerRed.castShadow = true;
+        markerRed.receiveShadow = true;
+        markers.add(markerRed);
+
+        const markerBlue = new THREE.Mesh(
+            new THREE.BoxBufferGeometry(2, 4, 4),
+            new THREE.MeshStandardMaterial({
+                color: '#5999ff',
+            })
+        );
+        const coordinatesBlue = boardCoordinatesTo3D(gridCoordinatesToBoardCoordinates(new Vector2(8,3)));
+        markerBlue.position.set(coordinatesBlue.x, -1, coordinatesBlue.z);
+        markerBlue.castShadow = true;
+        markerBlue.receiveShadow = true;
+        markers.add(markerBlue)
+
+        const markerCenter = new THREE.Mesh(
+            new THREE.BoxBufferGeometry(40, 1, 1),
+            new THREE.MeshStandardMaterial({
+                map: texture,
+            })
+        );
+        const coordinatesCenter = boardCoordinatesTo3D(gridCoordinatesToBoardCoordinates(new Vector2(3.5,3.5)));
+        markerCenter.position.set(coordinatesCenter.x, 0, coordinatesCenter.z);
+        markerCenter.castShadow = true;
+        markerCenter.receiveShadow = true;
+        markers.add(markerCenter)
+
+        this.scene.add(markers);
+        return markers
     }
     private createInteractiveBoardPlane(): Mesh {
         const plane = new THREE.Mesh(
