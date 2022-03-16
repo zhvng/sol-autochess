@@ -297,17 +297,27 @@ describe('autochess', async () => {
     assert.deepStrictEqual((account.entities.all as Array<any>).length, 6, 'Incorrect pieces placed');
   });
 
-  it('reveal 2', async () => {
-    await program.rpc.revealSecond([...Buffer.from(initializerReveal2, 'hex')], [...Buffer.from(initializerSecret2, 'hex')], {
-      accounts: {
-        game: gamePDAKey,
-        invoker: iBurner.publicKey,
-        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-      },
-      signers: [iBurner]
-    });
-    await assert.rejects(async () => {
+  it('reveal 2', (done) => {
+    setTimeout(async ()=>{
       await program.rpc.revealSecond([...Buffer.from(initializerReveal2, 'hex')], [...Buffer.from(initializerSecret2, 'hex')], {
+        accounts: {
+          game: gamePDAKey,
+          invoker: iBurner.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [iBurner]
+      });
+      await assert.rejects(async () => {
+        await program.rpc.revealSecond([...Buffer.from(initializerReveal2, 'hex')], [...Buffer.from(initializerSecret2, 'hex')], {
+          accounts: {
+            game: gamePDAKey,
+            invoker: oBurner.publicKey,
+            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+          },
+          signers: [oBurner]
+        });
+      });
+      await program.rpc.revealSecond([...Buffer.from(opponentReveal2, 'hex')], [...Buffer.from(opponentSecret2, 'hex')], {
         accounts: {
           game: gamePDAKey,
           invoker: oBurner.publicKey,
@@ -315,27 +325,20 @@ describe('autochess', async () => {
         },
         signers: [oBurner]
       });
-    });
-    await program.rpc.revealSecond([...Buffer.from(opponentReveal2, 'hex')], [...Buffer.from(opponentSecret2, 'hex')], {
-      accounts: {
-        game: gamePDAKey,
-        invoker: oBurner.publicKey,
-        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-      },
-      signers: [oBurner]
-    });
-    const account = await program.account.game.fetch(gamePDAKey);
-    assert.deepStrictEqual(account.reveal2, [
-      107, 165,  64, 200,  92, 185, 127,
-      157,  83, 226, 151,  38,  72, 206,
-      255,  39, 127, 141, 243, 149, 183,
-      111, 147,  17, 153, 208,  94, 122,
-      173, 237, 221, 237
-    ], 'Incorrect reveal');
-    assert.deepStrictEqual(account.state, 3, 'Wrong state');
-    for (const entity of account.entities.all as Array<any>) {
-      assert(entity.unitType['hidden'] === undefined, "no hidden units left");
-    }
+      const account = await program.account.game.fetch(gamePDAKey);
+      assert.deepStrictEqual(account.reveal2, [
+        107, 165,  64, 200,  92, 185, 127,
+        157,  83, 226, 151,  38,  72, 206,
+        255,  39, 127, 141, 243, 149, 183,
+        111, 147,  17, 153, 208,  94, 122,
+        173, 237, 221, 237
+      ], 'Incorrect reveal');
+      assert.deepStrictEqual(account.state, 3, 'Wrong state');
+      for (const entity of account.entities.all as Array<any>) {
+        assert(entity.unitType['hidden'] === undefined, "no hidden units left");
+      }
+      done();
+    }, 95 * 1000);
   });
 
   it('crank', async ()=>{

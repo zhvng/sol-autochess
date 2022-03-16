@@ -180,7 +180,7 @@ pub mod autochess {
             game.i_inactivity_timer = None;
 
             // A 2 minute (+ a few seconds) timer is started. Once this timer is up, piece placement is disabled so its safe to reveal.
-            let piece_timer: i64 = clock.unix_timestamp + 60 * 2 + 5;
+            let piece_timer: i64 = clock.unix_timestamp + 90 + 5;
             game.piece_timer = Some(piece_timer);
         }
         Ok(())
@@ -211,6 +211,11 @@ pub mod autochess {
         let game = &mut ctx.accounts.game;
         let player_type = game.get_player_type(*ctx.accounts.invoker.key);
         let clock = &ctx.accounts.clock;
+
+        // if piece timer is not over, do not allow reveal.
+        if ctx.accounts.clock.unix_timestamp < game.piece_timer.unwrap() {
+            return Err(ErrorCode::TimeError.into());
+        }
 
         // opposing player will be inactive 60 seconds after the first player's reveal
         let inactivity_timer: i64 = clock.unix_timestamp + 60;
@@ -362,6 +367,7 @@ pub struct ClaimInactivity<'info> {
     game: Account<'info, Game>,
     #[account(mut)]
     invoker: Signer<'info>,
+    #[account(mut)]
     initializer: UncheckedAccount<'info>,
     clock: Sysvar<'info, Clock>,
 }
