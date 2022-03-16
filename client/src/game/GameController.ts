@@ -19,6 +19,7 @@ class GameController {
     private interval: NodeJS.Timer;
     private waitingForPlayersObject?: CSS2DObject;
     private waitingForRevealObject?: CSS2DObject;
+    private placePiecesObject?: CSS2DObject;
     private timestamp?: number;
     private timer: CSS2DObject;
     private isInitializer: boolean = true;
@@ -76,89 +77,11 @@ class GameController {
     }
 
     private timeRemaining() {
-        if (this.timestamp === undefined) return 0;
+        if (this.timestamp === undefined) return undefined;
         const currentTimestamp = Math.floor(Date.now() / 1000);
         return Math.max(this.timestamp - currentTimestamp, 0);
     }
 
-    private draw() {
-        if (this.gameProgress === GameProgress.WaitingForOpponent) {
-            if (this.waitingForPlayersObject === undefined) {
-                const waitingForPlayersDiv = document.createElement('div');
-                waitingForPlayersDiv.style.position = 'absolute';
-                waitingForPlayersDiv.innerHTML=(`
-                    <div style="font-size:48px;color:gray;">WAITING FOR OPPONENT </div>
-                    <div style="font-size:16px;color:gray; width:50%; margin: auto;">*make sure to hit cancel before leaving this page! (to get your money back) </div>
-                `)
-                waitingForPlayersDiv.style.textAlign ='center';
-                waitingForPlayersDiv.style.width ='100%';
-                waitingForPlayersDiv.style.backgroundColor ='rgba(255, 255, 255, 0.3)';
-                waitingForPlayersDiv.style.padding ='10px';
-                const button = document.createElement('button');
-                button.addEventListener('pointerdown', ()=>{
-                    console.log('asdf')
-                    this.cancelGame();
-                });
-                button.innerHTML="cancel";
-                button.style.border = '2px solid red';
-                button.style.color = 'red';
-                button.style.fontSize = '18px';
-                button.style.padding = '5px';
-                button.style.marginTop = '10px';
-                waitingForPlayersDiv.appendChild(button);
-                this.waitingForPlayersObject = new CSS2DObject(waitingForPlayersDiv)
-                this.waitingForPlayersObject.position.setY(5);
-                this.scene.add(this.waitingForPlayersObject);
-            }
-        } else {
-            if (this.waitingForPlayersObject !== undefined) {
-                this.scene.remove(this.waitingForPlayersObject);
-                this.waitingForPlayersObject = undefined;
-            }
-        }
-
-        if (this.waitingForRevealObject !== undefined) {
-            this.scene.remove(this.waitingForRevealObject);
-            this.waitingForRevealObject = undefined;
-        }
-        if (this.gameProgress === GameProgress.WaitingForOpponentReveal1 ||
-            this.gameProgress === GameProgress.WaitingForOpponentReveal2) {
-            if (this.waitingForRevealObject === undefined) {
-                const waitingForRevealDiv = document.createElement('div');
-                waitingForRevealDiv.style.position = 'absolute';
-                waitingForRevealDiv.innerHTML=(`
-                    <div style="font-size:32px;color:white;">waiting for opponent to reveal </div>
-                `)
-                waitingForRevealDiv.style.textAlign ='center';
-                waitingForRevealDiv.style.width ='100%';
-                waitingForRevealDiv.style.backgroundColor ='rgba(220, 220, 220, 0.3)';
-                waitingForRevealDiv.style.padding ='10px';
-
-                const timeRemaining = this.timeRemaining();
-                if (timeRemaining === 0) {
-                    const button = document.createElement('button');
-                    button.addEventListener('pointerdown', ()=>{
-                        this.claimInactivity();
-                    });
-                    button.innerHTML="claim victory";
-                    button.style.border = '2px solid green';
-                    button.style.color = 'green';
-                    button.style.fontSize = '18px';
-                    button.style.padding = '5px';
-                    button.style.marginTop = '10px';
-                    waitingForRevealDiv.appendChild(button);
-                }
-                this.waitingForRevealObject = new CSS2DObject(waitingForRevealDiv)
-                this.waitingForRevealObject.position.setY(25);
-                this.scene.add(this.waitingForRevealObject);
-            }
-        } else {
-            if (this.waitingForRevealObject !== undefined) {
-                this.scene.remove(this.waitingForRevealObject);
-                this.waitingForRevealObject = undefined;
-            }
-        }
-    } 
     
     private async fetchGameState() {
         const account = await this.program.account.game.fetch(this.gamePDAKey);
@@ -167,7 +90,7 @@ class GameController {
         return account;
     }
 
-    public async initState() {
+    private async initState() {
         try {
             const account = await this.fetchGameState();
             console.log(account);
@@ -211,123 +134,329 @@ class GameController {
             this.draw();
         } catch(error) {
             notify({ type: 'error', message: `Error!`, description: error?.message });
-            const errorDiv = document.createElement('div');
-            errorDiv.style.position = 'absolute';
-            errorDiv.innerHTML=(`
-                <div style="font-size:30px;color:red;">error</div>
-            `)
-            const button = document.createElement('button');
-            button.addEventListener('click', ()=>{
-                window.location.href = '/';
-            });
-            button.innerHTML="back";
-            const button2 = document.createElement('button');
-            button2.addEventListener('click', ()=>{
-                window.location.href = '';
-            });
-            button2.innerHTML="refresh";
-            button2.style.display = 'block';
-            errorDiv.appendChild(button2);
-            errorDiv.appendChild(button);
-            this.waitingForPlayersObject = new CSS2DObject(errorDiv)
-            this.scene.add(this.waitingForPlayersObject);
+            this.drawError();
         }
     }
 
-    public async updateState() {
+    private setInactivityTimer() {
+        if (this.isInitializer && this.lastGameState.oInactivityTimer) {
+            this.timestamp = (this.lastGameState.oInactivityTimer as BN).toNumber();   
+        } else if(!this.isInitializer && this.lastGameState.iInactivityTimer) {
+            this.timestamp = (this.lastGameState.iInactivityTimer as BN).toNumber();   
+        }
+    }
+
+    private setPieceTimer() {
+        this.timestamp = (this.lastGameState.pieceTimer as BN).toNumber();
+    }
+
+    private clearTimer() {
+        this.timestamp = undefined;
+    }
+
+    private async updateState() {
         // console.log(draw_private_hand(Uint8Array.from(this.gameInputs.reveal1), Uint8Array.from(this.gameInputs.reveal2)));
         console.log(this.gameProgress);
-        if (this.gameProgress === GameProgress.WaitingForOpponent) {
-            const account = await this.fetchGameState();
-            if (account.state !== undefined) {
-                if (account.state === 1) {
+        switch (this.gameProgress) {
+            case GameProgress.WaitingForOpponent:
+                await this.fetchGameState();
+                if (this.lastGameState.state === 1) {
                     this.gameProgress = GameProgress.Reveal1;
+                    this.updateState();
                 }
-            }
-        } else if (this.gameProgress === GameProgress.Reveal1) {
-            // send reveal 1 and change state
-            this.timestamp = undefined;
-            await this.reveal1();
-            this.updateState();
+                break;
+            case GameProgress.Reveal1:
+                // send reveal 1 and change state
+                this.timestamp = undefined;
+                await this.reveal1();
+                break;
 
-        } else if(this.gameProgress === GameProgress.WaitingForOpponentReveal1) {
-            const account = await this.fetchGameState();
-            if (account.state === 2) {
+            case GameProgress.WaitingForOpponentReveal1:
+                await this.fetchGameState();
+                if (this.lastGameState.state === 2) {
+                    this.gameProgress = GameProgress.DrawPieces;
+                    this.clearTimer();
+                    this.updateState();
+                }
+                this.setInactivityTimer();
+                break;
+
+            case GameProgress.DrawPieces:
+                await this.fetchGameState();
                 this.gameProgress = GameProgress.PlacePieces;
-            }
-            console.log(account);
-            if (this.isInitializer && account.oInactivityTimer) {
-                this.timestamp = (account.oInactivityTimer as BN).toNumber();   
-            } else if(!this.isInitializer && account.iInactivityTimer) {
-                this.timestamp = (account.iInactivityTimer as BN).toNumber();   
-            }
+                this.updateState();
+                break;
 
-        } else if(this.gameProgress === GameProgress.PlacePieces) {
-            const account = await this.fetchGameState();
-            // check timer , if timer is over reveal2
-            this.timestamp = (account.pieceTimer as BN).toNumber();
-            if (this.timeRemaining() === 0) this.gameProgress = GameProgress.Reveal2;
-
-        } else if (this.gameProgress === GameProgress.Reveal2) {
-            this.gameProgress = GameProgress.WaitingForOpponentReveal2;
-            this.timestamp = undefined;
-            await this.reveal2();
-
-        } else if (this.gameProgress === GameProgress.WaitingForOpponentReveal2) {
-            const account = await this.fetchGameState();
-
-            if (account.state === 3) {
-                this.gameProgress = GameProgress.InProgress;
-            }
-            if (this.isInitializer && account.oInactivityTimer) {
-                this.timestamp = (account.oInactivityTimer as BN).toNumber();   
-            } else if(!this.isInitializer && account.iInactivityTimer) {
-                this.timestamp = (account.iInactivityTimer as BN).toNumber();   
-            }
-
-        } else if(this.gameProgress === GameProgress.InProgress) {
-            // crank game a ton
-            for (let i=0; i<5; i++) {
-                const tx = this.program.transaction.crankGame(5 + Math.floor(i/5), {
-                    accounts: {
-                    game: this.gamePDAKey,
-                    invoker: this.burnerWallet.publicKey,
-                    },
-                    signers: [this.burnerWallet],
-                });
-                const signature = web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
-                    this.burnerWallet
-                ]);
-                notify({ type: 'success', message: 'Sent crank transaction!' });
-            }
-            const account = await this.fetchGameState();
-            const winCondition = account.winCondition;
-            if (winCondition !== undefined) {
-                if (winCondition['inProgress'] === undefined) {
-                    console.log(account);
-                    this.gameProgress = GameProgress.End;
+            case GameProgress.PlacePieces:
+                await this.fetchGameState();
+                // check timer , if timer is over reveal2
+                this.timestamp = (this.lastGameState.pieceTimer as BN).toNumber();
+                if (this.timeRemaining() === 0) {
+                    this.gameProgress = GameProgress.Reveal2;
+                    this.updateState();
                 }
+                break;
+
+            case GameProgress.Reveal2:
+                this.gameProgress = GameProgress.WaitingForOpponentReveal2;
+                this.timestamp = undefined;
+                await this.reveal2();
+                break;
+
+            case GameProgress.WaitingForOpponentReveal2:
+                await this.fetchGameState();
+
+                if (this.lastGameState.state === 3) {
+                    this.gameProgress = GameProgress.InProgress;
+                    this.clearTimer();
+                    this.updateState();
+                }
+                this.setInactivityTimer();
+                break;
+
+            case GameProgress.InProgress:
+                // crank game a ton
+                for (let i=0; i<5; i++) {
+                    const tx = this.program.transaction.crankGame(5 + Math.floor(i/5), {
+                        accounts: {
+                        game: this.gamePDAKey,
+                        invoker: this.burnerWallet.publicKey,
+                        },
+                        signers: [this.burnerWallet],
+                    });
+                    web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
+                        this.burnerWallet
+                    ]);
+                }
+                await this.fetchGameState();
+                notify({ type: 'info', message: 'simulating game...' });
+                const winCondition = this.lastGameState.winCondition;
+                if (winCondition !== undefined) {
+                    if (winCondition['inProgress'] === undefined) {
+                        console.log(this.lastGameState);
+                        this.gameProgress = GameProgress.End;
+                        this.updateState();
+                    }
+                }
+
+            case GameProgress.End: {
+                // check who won
+                if (this.lastGameState.winCondition['tie'] !== undefined) {
+                    this.gameProgress = GameProgress.EndTie;
+                } else if (this.lastGameState.winCondition['initializer'] !== undefined) {
+                    if (this.isInitializer) this.gameProgress = GameProgress.EndWin;
+                    else this.gameProgress = GameProgress.EndLose;
+                } else if (this.lastGameState.winCondition['opponent'] !== undefined) {
+                    if (this.isInitializer) this.gameProgress = GameProgress.EndLose;
+                    else this.gameProgress = GameProgress.EndWin;
+                }
+                await this.drainBurner();
+                break;
             }
 
-        } else if(this.gameProgress === GameProgress.End) {
-            // check who won
-            if (this.lastGameState.winCondition['tie'] !== undefined) {
-                await this.program.rpc.claimVictory({
-                    accounts: {
-                      game: this.gamePDAKey,
-                      invoker: this.program.provider.wallet.publicKey,
-                      initializer: this.lastGameState.initializer,
-                      opponent: this.lastGameState.opponent,
-                    },
-                });
-            } else if (this.lastGameState.winCondition['initializer'] !== undefined) {
-
-            } else if (this.lastGameState.winCondition['opponent'] !== undefined) {
-
+            case GameProgress.EndTie: {
+                // refresh
+                try {
+                    await this.fetchGameState();
+                } catch(err) {
+                    console.log(err);
+                }
             }
         }
         this.draw()
     }
+
+    private drawError() {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.position = 'absolute';
+        errorDiv.innerHTML=(`
+            <div style="font-size:30px;color:red;">error</div>
+        `)
+        const button = document.createElement('button');
+        button.addEventListener('click', ()=>{
+            window.location.href = '/';
+        });
+        button.innerHTML="back";
+        const button2 = document.createElement('button');
+        button2.addEventListener('click', ()=>{
+            window.location.href = '';
+        });
+        button2.innerHTML="refresh";
+        button2.style.display = 'block';
+        errorDiv.appendChild(button2);
+        errorDiv.appendChild(button);
+        this.waitingForPlayersObject = new CSS2DObject(errorDiv)
+        this.scene.add(this.waitingForPlayersObject);
+    }
+    private draw() {
+        if (this.gameProgress === GameProgress.WaitingForOpponent) {
+            if (this.waitingForPlayersObject === undefined) {
+                const waitingForPlayersDiv = document.createElement('div');
+                waitingForPlayersDiv.style.position = 'absolute';
+                waitingForPlayersDiv.innerHTML=(`
+                    <div style="font-size:48px;color:gray;">WAITING FOR OPPONENT </div>
+                    <div style="font-size:16px;color:gray; width:50%; margin: auto;">IMPORTANT: hit cancel before closing this page! (to get your wager back) </div>
+                `)
+                waitingForPlayersDiv.style.textAlign ='center';
+                waitingForPlayersDiv.style.width ='100%';
+                waitingForPlayersDiv.style.backgroundColor ='white';
+                waitingForPlayersDiv.style.padding ='10px';
+                const button = document.createElement('button');
+                button.addEventListener('pointerdown', ()=>{
+                    console.log('asdf')
+                    this.cancelGame();
+                });
+                button.innerHTML="cancel";
+                button.style.border = '2px solid red';
+                button.style.color = 'red';
+                button.style.fontSize = '18px';
+                button.style.padding = '5px';
+                button.style.marginTop = '10px';
+                waitingForPlayersDiv.appendChild(button);
+                this.waitingForPlayersObject = new CSS2DObject(waitingForPlayersDiv)
+                this.waitingForPlayersObject.position.setY(5);
+                this.scene.add(this.waitingForPlayersObject);
+            } else {
+                this.waitingForPlayersObject.visible = true;
+            }
+        } else {
+            if (this.waitingForPlayersObject !== undefined) {
+                this.waitingForPlayersObject.visible = false;
+            }
+        }
+
+        if (this.gameProgress === GameProgress.WaitingForOpponentReveal1 ||
+            this.gameProgress === GameProgress.WaitingForOpponentReveal2) {
+            if (this.waitingForRevealObject === undefined) {
+                const waitingForRevealDiv = document.createElement('div');
+                waitingForRevealDiv.style.position = 'absolute';
+                waitingForRevealDiv.innerHTML=(`
+                    <div style="font-size:32px;color:white;">waiting for opponent to reveal </div>
+                `)
+                waitingForRevealDiv.style.textAlign ='center';
+                waitingForRevealDiv.style.width ='100%';
+                waitingForRevealDiv.style.backgroundColor ='rgba(220, 220, 220, 0.3)';
+                waitingForRevealDiv.style.padding ='10px';
+
+                const button = document.createElement('button');
+                button.addEventListener('pointerdown', ()=>{
+                    this.claimInactivity();
+                });
+                button.innerHTML="claim victory";
+                button.style.border = '2px solid green';
+                button.style.color = 'green';
+                button.style.fontSize = '18px';
+                button.style.padding = '5px';
+                button.style.marginTop = '10px';
+                button.style.display = 'none';
+                button.className = 'victoryButton';
+                waitingForRevealDiv.appendChild(button);
+
+                this.waitingForRevealObject = new CSS2DObject(waitingForRevealDiv)
+                this.waitingForRevealObject.position.setY(25);
+                this.scene.add(this.waitingForRevealObject);
+            } else {
+                this.waitingForRevealObject.visible = true;
+
+                const buttonElements = this.waitingForRevealObject.element.getElementsByClassName('victoryButton');
+                const buttonElement = buttonElements[0] as HTMLButtonElement;
+                
+                const timeRemaining = this.timeRemaining();
+                if (timeRemaining === undefined || timeRemaining !== 0) {
+                    buttonElement.style.display = 'none';
+                } else {
+                    buttonElement.style.display = 'inline';
+                }
+            }
+        } else {
+            if (this.waitingForRevealObject !== undefined) {
+                this.waitingForRevealObject.visible = false;
+            }
+        }
+
+        if (this.gameProgress === GameProgress.PlacePieces) {
+            if (this.placePiecesObject === undefined) {
+                const placePiecesDiv = document.createElement('div');
+                placePiecesDiv.style.position = 'absolute';
+                placePiecesDiv.innerHTML=(`
+                    <div style="font-size:32px;color:white;">place pieces</div>
+                `)
+                placePiecesDiv.style.textAlign ='center';
+                placePiecesDiv.style.width ='100%';
+                placePiecesDiv.style.backgroundColor ='rgba(220, 220, 220, 0.3)';
+                placePiecesDiv.style.padding ='10px';
+
+                this.placePiecesObject = new CSS2DObject(placePiecesDiv)
+                this.placePiecesObject.position.setY(25);
+                this.scene.add(this.placePiecesObject);
+            }
+        } else {
+            if (this.placePiecesObject !== undefined) {
+                this.placePiecesObject.visible = false;
+            }
+        }
+
+        if (this.gameProgress === GameProgress.EndTie 
+            || this.gameProgress === GameProgress.EndWin
+            || this.gameProgress === GameProgress.EndLose) {
+
+            const gameOverDiv = document.createElement('div');
+
+            const wagerSol = (this.lastGameState.wager/web3.LAMPORTS_PER_SOL).toFixed(2);
+            if (this.gameProgress === GameProgress.EndTie) {
+                gameOverDiv.innerHTML=(`
+                    <div style="font-size:48px;color:gray;">tie</div>
+                    <div style="font-size:16px;color:gray; width:50%; margin: auto;">Claim your buy-in below. Only 1 player has to do this step, so may fail if opponent has already claimed.</div>
+                `)
+                const button = document.createElement('button');
+                button.addEventListener('pointerdown', ()=>{
+                    console.log('claiming tie');
+                    this.claimVictory();
+                });
+                button.innerHTML=`claim ${wagerSol}`;
+                button.style.border = '2px solid gray';
+                button.style.color = 'gray';
+                button.style.fontSize = '18px';
+                button.style.padding = '5px';
+                button.style.marginTop = '10px';
+                gameOverDiv.appendChild(button);
+            } else if (this.gameProgress === GameProgress.EndWin) {
+                gameOverDiv.innerHTML=(`
+                    <div style="font-size:48px;color:gray;">you win!</div>
+                    <div style="font-size:16px;color:gray; width:50%; margin: auto;">Claim your wager below</div>
+                `)
+                const button = document.createElement('button');
+                button.addEventListener('pointerdown', ()=>{
+                    console.log('claiming victory');
+                    this.claimVictory();
+                });
+                button.innerHTML=`claim ${wagerSol}`;
+                button.style.border = '2px solid green';
+                button.style.color = 'green';
+                button.style.fontSize = '18px';
+                button.style.padding = '5px';
+                button.style.marginTop = '10px';
+                gameOverDiv.appendChild(button);
+                
+            } else {
+                gameOverDiv.innerHTML=(`
+                    <div style="font-size:48px;color:gray;">you lose :(</div>
+                    <div style="font-size:16px;color:gray; width:50%; margin: auto;">Sending burner funds back to main wallet... will redirect when finished</div>
+                `)
+            }
+
+            
+            gameOverDiv.style.position = 'absolute';
+
+            gameOverDiv.style.textAlign ='center';
+            gameOverDiv.style.width ='100%';
+            gameOverDiv.style.backgroundColor ='white';
+            gameOverDiv.style.padding ='10px';
+            const gameOverObject = new CSS2DObject(gameOverDiv)
+            gameOverObject.position.setY(5);
+            this.scene.add(gameOverObject);
+        }
+    } 
 
     private async claimVictory() {
         console.log('sending claim victory');
@@ -353,19 +482,30 @@ class GameController {
     }
 
     private async drainBurner() {
-        const balance = await this.program.provider.connection.getBalance(
-            this.burnerWallet.publicKey,
-            'confirmed'
-        );
-        const drainBurnerWalletIx: TransactionInstruction = SystemProgram.transfer({
-            fromPubkey: this.burnerWallet.publicKey,
-            toPubkey: this.program.provider.wallet.publicKey,
-            lamports: balance,
-        });
-        const tx = new web3.Transaction().add(drainBurnerWalletIx);
-        let signature = await web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
-            this.burnerWallet
-        ]);
+        let signature = '';
+        try{
+            const balance = await this.program.provider.connection.getBalance(
+                this.burnerWallet.publicKey,
+                'confirmed'
+            );
+            notify({ type: 'info', message: 'Sending burner funds to main wallet...' });
+        
+            const fee = 5000 * 2; // hardcoded, but should be enough for the time being. migrate to getFeeForMessage
+            const drainBurnerWalletIx = SystemProgram.transfer({
+                fromPubkey: this.burnerWallet.publicKey,
+                toPubkey: this.program.provider.wallet.publicKey,
+                lamports: balance - fee,
+            });
+            const tx = new web3.Transaction().add(drainBurnerWalletIx);
+            signature = await web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
+                this.burnerWallet
+            ]);
+            notify({ type: 'success', message: 'Burner funds returned to main wallet!', txid: signature });
+        } catch (error: any) {
+            notify({ type: 'error', message: `Failed to drain burner wallet!`, description: error?.message, txid: signature });
+            console.log('error', `Transaction failed! ${error?.message}`, signature);
+            return;
+        }
     }
 
     private async claimInactivity() {
@@ -418,6 +558,7 @@ class GameController {
                 },
                 signers: [this.burnerWallet]
             });
+            notify({ type: 'info', message: 'Revealing first commitment...' });
             signature = await web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
                 this.burnerWallet
             ]);
@@ -441,6 +582,7 @@ class GameController {
                 },
                 signers: [this.burnerWallet]
             });
+            notify({ type: 'info', message: 'Revealing second commitment...' });
             signature = await web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
                 this.burnerWallet
             ]);

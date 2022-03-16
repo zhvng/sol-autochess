@@ -94,6 +94,23 @@ state: {Moving: {…}}
 target: null
 unit_type: "Wolf"*/
     }
+    public placePiece(gridX: number, gridY: number, unitType: UnitTypeWasm, controller: ControllerWasm) {
+        if (this.gameController !== undefined) {
+            const id = this.gameController.placePiece(gridX, gridY, unitType, controller);
+            const entity = this.gameController.getEntityById(id);
+            console.log(id);
+            this.createEntity(id, entity, unitType, controller);
+        }
+    }
+
+    public placePieceHidden(gridX: number, gridY: number, unitType: UnitTypeWasm, controller: ControllerWasm) {
+        if (this.gameController !== undefined) {
+            const id = this.gameController.placePiece(gridX, gridY, unitType, controller);
+            const entity = this.gameController.getEntityById(id);
+            console.log(id);
+            this.createEntity(id, entity, unitType, controller);
+        }
+    }
 
     public createEntity(id: number, entity: any, unitType: UnitTypeWasm, controller: ControllerWasm): void {
         if (this.gameController !== undefined) {

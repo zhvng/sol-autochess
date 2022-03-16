@@ -90,7 +90,7 @@
         },
         {
           "name": "initializer",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {

@@ -67,7 +67,7 @@ export const HomeView: FC = ({ }) => {
           <br></br>
           <hr></hr>
           <br></br>
-          <p>How it works:</p>
+          <p>How to play:</p>
           <br></br>
           <ol className="inline-block text-left">
             <li>1. Create or join a game with your preferred wager amount</li>

@@ -111,15 +111,6 @@ class Game {
         // console.log(this.gameController.getEntities());
     }
 
-    public placePiece(gridX: number, gridY: number, unitType: UnitTypeWasm, controller: ControllerWasm) {
-        if (this.gameController !== undefined && this.entityManager !== undefined) {
-            const id = this.gameController.placePiece(gridX, gridY, unitType, controller);
-            const entity = this.gameController.getEntityById(id);
-            console.log(id);
-            this.entityManager.createEntity(id, entity, unitType, controller);
-        }
-    }
-
     private update(timeElapsed: number): void {
         if (this.board !== undefined) this.board.update();
         if (this.entityManager !== undefined) this.entityManager.update(timeElapsed);
@@ -159,7 +150,7 @@ class Game {
     private createCamera(): PerspectiveCamera {
         const camera = new THREE.PerspectiveCamera( 50, window.innerWidth/window.innerHeight, 0.1, 2000 );
         camera.position.set(0, 50, 45);
-        camera.rotation.x = -Math.PI/4;
+        camera.lookAt(0,0,0);
         this.scene.add(camera);
 
         return camera;
