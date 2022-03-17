@@ -101,7 +101,8 @@ impl Game {
     ///  - no two pieces share a location
     ///  - 3 pieces max for initializer/opponent 
     ///  - in bounds and on the right side
-    fn can_place(&self, player: entities::Controller, x: u16, y: u16) -> bool {
+    /// n is how many additional pieces we want to place (1 for basic place, 0 for move)
+    fn can_place(&self, player: entities::Controller, x: u16, y: u16, n: u16) -> bool {
         // must place in bounds
         if x > 800 || y > 800 {
             return false;
@@ -109,20 +110,20 @@ impl Game {
         // must place on your side, and within your piece limits
         match player {
             entities::Controller::Initializer => {
-                if y > 300 {
+                if y > 400 {
                     return false;
                 }
                 // For now, we're doing 3 vs 3. But subject to change
-                if self.entities.count_for_controller(player) >= 3 {
+                if self.entities.count_for_controller(player) + n > 3 {
                     return false;
                 }
             },
             entities::Controller::Opponent => {
-                if y < 500 {
+                if y < 400 {
                     return false;
                 }
 
-                if self.entities.count_for_controller(player) >= 3 {
+                if self.entities.count_for_controller(player) + n > 3 {
                     return false;
                 }
             },
@@ -153,13 +154,23 @@ impl Game {
         let x = grid_x * 100 + 50;
         let y = grid_y * 100 + 50;
 
-        if self.can_place(player, x, y) {
+        if self.can_place(player, x, y, 1) {
             let id = self.entities.create(player, x, y, unit_type);
             return Some(id);
         } else {
             return None;
         }
     }
+
+    /// Place piece with a given id.
+    /// For client use
+    pub fn place_piece_with_id(&mut self, id: u16, player: entities::Controller, board_x: u16, board_y: u16, unit_type: units::UnitType) -> Option<u16> {
+        msg!("{:?}", self.entities);
+
+        let id = self.entities.create_with_id(id, player, board_x, board_y, unit_type);
+        return Some(id);
+    }
+
     /// Place a hidden piece piece in a grid, where (0,0) is the bottom left grid from the initalizers pov, and (7,7) is the top right.
     pub fn place_piece_hidden(&mut self, player: entities::Controller, grid_x: u16, grid_y: u16, hand_position: u8) -> Option<u16> {
         msg!("{:?}", self.entities);
@@ -167,7 +178,7 @@ impl Game {
         let x = grid_x * 100 + 50;
         let y = grid_y * 100 + 50;
 
-        if self.can_place(player, x, y) {
+        if self.can_place(player, x, y, 1) {
             // We can only place a hidden piece if we are a player
             if !(player == entities::Controller::Initializer || player == entities::Controller::Opponent) {
                 return None;
@@ -177,7 +188,7 @@ impl Game {
                 return None;
             }
             // Hand position must be unique
-            for entity in &self.entities.all {
+            for entity in &mut self.entities.all {
                 if entity.owner == player {
                     match entity.unit_type {
                         units::UnitType::Hidden{hand_position: hand_position_compare} => {
@@ -195,6 +206,69 @@ impl Game {
         } else {
             return None;
         }
+    }
+    /// Change the location of a hidden piece piece in a grid, where (0,0) is the bottom left grid from the initalizers pov, and (7,7) is the top right.
+    pub fn move_piece_hidden(&mut self, player: entities::Controller, grid_x: u16, grid_y: u16, hand_position: u8) -> Option<u16> {
+        msg!("{:?}", self.entities);
+
+        let x = grid_x * 100 + 50;
+        let y = grid_y * 100 + 50;
+
+        if self.can_place(player, x, y, 0) {
+            // We can only place a hidden piece if we are a player
+            if !(player == entities::Controller::Initializer || player == entities::Controller::Opponent) {
+                return None;
+            }
+            // Hand position must be in bounds
+            if hand_position >= 5 {
+                return None;
+            }
+            // Move if we find the hand position, otherwise fail
+            for entity in &mut self.entities.all {
+                if entity.owner == player {
+                    match entity.unit_type {
+                        units::UnitType::Hidden{hand_position: hand_position_compare} => {
+                            if hand_position_compare == hand_position {
+                                    // This piece has already been placed. Move it.
+                                    entity.position = utils::Location{x, y};
+                                    return Some(entity.id);
+                            }
+                        }
+                        _ =>{}
+                    }
+                }
+            }
+            return None;
+        } else {
+            return None;
+        }
+    }
+    /// Remove a hidden piece piece in the grid.
+    pub fn remove_piece_hidden(&mut self, player: entities::Controller, hand_position: u8) -> Option<u16> {
+        // We can only remove a hidden piece if we are a player
+        if !(player == entities::Controller::Initializer || player == entities::Controller::Opponent) {
+            return None;
+        }
+        // Hand position must be in bounds
+        if hand_position >= 5 {
+            return None;
+        }
+        // delete if we find the hand position, otherwise fail
+        for entity in &self.entities.all.clone() {
+            if entity.owner == player {
+                match entity.unit_type {
+                    units::UnitType::Hidden{hand_position: hand_position_compare} => {
+                        if hand_position_compare == hand_position {
+                            // This piece has already been placed. Move it.
+                            self.entities.remove_by_id(entity.id);
+                            return Some(entity.id);
+                        }
+                    }
+                    _ =>{}
+                }
+            }
+        }
+        return None;
     }
     /// Using second reveal, simulate the player's draw. Then fill in identities of the hidden pieces.
     pub fn reveal_hidden_pieces(&mut self, player: entities::Controller, reveal_2: &[u8; 32]) {

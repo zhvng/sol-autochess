@@ -188,6 +188,29 @@ describe('autochess', async () => {
   });
 
   it('place pieces', async () => {
+    // REJECT: place piece out of bounds
+    await assert.rejects(async () => {
+      await program.rpc.placePieceHidden(8, 0, 3, {
+        accounts: {
+          game: gamePDAKey,
+          invoker: iBurner.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [iBurner],
+      });
+    }, 'place piece out of bounds');
+    // REJECT: place piece on wrong side
+    await assert.rejects(async () => {
+      await program.rpc.placePieceHidden(4, 0, 3, {
+        accounts: {
+          game: gamePDAKey,
+          invoker: oBurner.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [oBurner],
+      });
+    }, 'place piece on wrong side');
+    
     await program.rpc.placePieceHidden(1, 1, 0, {
       accounts: {
         game: gamePDAKey,
@@ -196,7 +219,7 @@ describe('autochess', async () => {
       },
       signers: [iBurner]
     });
-    await program.rpc.placePieceHidden(1, 2, 1, {
+    await program.rpc.placePieceHidden(0, 1, 2, {
       accounts: {
         game: gamePDAKey,
         invoker: iBurner.publicKey,
@@ -204,7 +227,20 @@ describe('autochess', async () => {
       },
       signers: [iBurner]
     });
-    await program.rpc.placePieceHidden(0, 1, 2, {
+
+    // REJECT: place piece with same hand id
+    await assert.rejects(async () => {
+      await program.rpc.placePieceHidden(5, 0, 2, {
+        accounts: {
+          game: gamePDAKey,
+          invoker: iBurner.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [iBurner],
+      });
+    }, 'place piece with the same hand id as another one');
+
+    await program.rpc.placePieceHidden(1, 2, 1, {
       accounts: {
         game: gamePDAKey,
         invoker: iBurner.publicKey,
@@ -228,17 +264,7 @@ describe('autochess', async () => {
       },
       signers: [oBurner],
     });
-    await program.rpc.placePieceHidden(3, 5, 3, {
-      accounts: {
-        game: gamePDAKey,
-        invoker: oBurner.publicKey,
-        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-      },
-      signers: [oBurner],
-    });
-    const account = await program.account.game.fetch(gamePDAKey);
-
-    // place piece on top of another one
+    // REJECT: place piece on top of another one
     await assert.rejects(async () => {
       await program.rpc.placePieceHidden(6, 7, 2, {
         accounts: {
@@ -248,32 +274,21 @@ describe('autochess', async () => {
         },
         signers: [oBurner],
       });
+    }, 'place on top of other piece');
+
+    await program.rpc.placePieceHidden(3, 4, 3, {
+      accounts: {
+        game: gamePDAKey,
+        invoker: oBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [oBurner],
     });
-    // place piece with same hand id
+    const account = await program.account.game.fetch(gamePDAKey);
+    
+    // REJECT: place too many pieces
     await assert.rejects(async () => {
-      await program.rpc.placePieceHidden(5, 0, 2, {
-        accounts: {
-          game: gamePDAKey,
-          invoker: iBurner.publicKey,
-          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-        },
-        signers: [iBurner],
-      });
-    });
-    // place piece out of bounds
-    await assert.rejects(async () => {
-      await program.rpc.placePieceHidden(8, 0, 3, {
-        accounts: {
-          game: gamePDAKey,
-          invoker: iBurner.publicKey,
-          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-        },
-        signers: [iBurner],
-      });
-    });
-    // place piece on wrong side
-    await assert.rejects(async () => {
-      await program.rpc.placePieceHidden(4, 0, 3, {
+      await program.rpc.placePieceHidden(6, 6, 1, {
         accounts: {
           game: gamePDAKey,
           invoker: oBurner.publicKey,
@@ -281,9 +296,33 @@ describe('autochess', async () => {
         },
         signers: [oBurner],
       });
-    });
+    }, 'place too many pieces');
 
     assert.deepStrictEqual(account.entities.all[5],
+      {
+        id: 5,
+        owner: { opponent: {} },
+        target: null,
+        speedMultiplier: 100,
+        position: { x: 350, y: 450 },
+        health: 0,
+        unitType: { hidden: {handPosition: 3} },
+        state: { idle: {} }
+      }, 'Incorrect pieces placed');
+    assert.deepStrictEqual((account.entities.all as Array<any>).length, 6, 'Incorrect pieces placed');
+  });
+
+  it('move and remove pieces', async ()=>{
+    await program.rpc.movePieceHidden(3, 5, 3, {
+      accounts: {
+        game: gamePDAKey,
+        invoker: oBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [oBurner],
+    });
+    const accountMove = await program.account.game.fetch(gamePDAKey);
+    assert.deepStrictEqual(accountMove.entities.all[5],
       {
         id: 5,
         owner: { opponent: {} },
@@ -293,9 +332,29 @@ describe('autochess', async () => {
         health: 0,
         unitType: { hidden: {handPosition: 3} },
         state: { idle: {} }
-      }, 'Incorrect pieces placed');
-    assert.deepStrictEqual((account.entities.all as Array<any>).length, 6, 'Incorrect pieces placed');
-  });
+      }, 'Moved to wrong position');
+
+      await program.rpc.removePieceHidden(0, {
+        accounts: {
+          game: gamePDAKey,
+          invoker: oBurner.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [oBurner],
+      });
+      const accountRemove = await program.account.game.fetch(gamePDAKey);
+      assert.deepStrictEqual(accountRemove.entities.all[4], {
+        id: 5,
+        owner: { opponent: {} },
+        target: null,
+        speedMultiplier: 100,
+        position: { x: 350, y: 550 },
+        health: 0,
+        unitType: { hidden: {handPosition: 3} },
+        state: { idle: {} }
+      }, 'did not delete a piece');
+      assert.deepStrictEqual((accountRemove.entities.all as Array<any>).length, 5, 'piece was not deleted');
+  })
 
   it('reveal 2', (done) => {
     setTimeout(async ()=>{

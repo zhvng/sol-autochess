@@ -11,6 +11,7 @@ pub struct Entities {
     pub counter: u16,
 }
 impl Entities {
+    /// For client use
     pub fn create(&mut self, player: Controller, x: u16, y: u16, unit_type: UnitType) -> u16 {
         let unit_map = units::get_unit_map();
         let unit = unit_map.get(&unit_type).unwrap();
@@ -28,6 +29,29 @@ impl Entities {
         self.counter += 1;
         return id;
     }
+
+    /// For client use
+    pub fn create_with_id(&mut self, id: u16, player: Controller, x: u16, y: u16, unit_type: UnitType) -> u16 {
+        let unit_map = units::get_unit_map();
+        let unit = unit_map.get(&unit_type).unwrap();
+        self.all.push(Entity {
+            id,
+            owner: player,
+            target: None,
+            speed_multiplier: 100,
+            position: Location{x, y},
+            health: unit.starting_health,
+            unit_type,
+            state: EntityState::Idle,
+        });
+        return id;
+    }
+
+    pub fn remove_by_id(&mut self, id: u16) {
+        let index = self.get_index_by_id(id).unwrap();
+        self.all.remove(index);
+    }
+
     /// place a hidden piece. on reveal, call reveal_hidden
     pub fn create_hidden(&mut self, player: Controller, x: u16, y: u16, hand_position: u8) -> u16 {
         let id = self.counter;
@@ -64,6 +88,15 @@ impl Entities {
                 }
             }
         }
+    }
+
+    pub fn get_index_by_id(&self, id: u16) -> Option<usize> {
+        for (i, entity) in &mut self.all.iter().enumerate() {
+            if entity.id == id {
+                return Some(i);
+            }
+        }
+        return None;
     }
 
     pub fn get_by_id_mut(&mut self, id: u16) -> Option<&mut Entity> {

@@ -204,6 +204,45 @@ pub mod autochess {
         }
         Ok(())
     }
+
+    /// state = 2. Move a placed piece.
+    /// When piece timer expires, you cannot move anymore pieces.
+    pub fn move_piece_hidden(ctx: Context<PlacePiece>, grid_x: u16, grid_y: u16, hand_position: u8) -> ProgramResult {
+        let game = &mut ctx.accounts.game;
+        let player_type = game.get_player_type(*ctx.accounts.invoker.key);
+
+        // if timer is expired, error
+        if ctx.accounts.clock.unix_timestamp > game.piece_timer.unwrap() {
+            return Err(ErrorCode::TimeError.into());
+        }
+
+        // move piece. fail if fails
+        let placed = game.move_piece_hidden(player_type, grid_x, grid_y, hand_position);
+        if placed == None {
+            return Err(ProgramError::InvalidArgument);
+        }
+        Ok(())
+    }
+
+    /// state = 2. Remove a placed piece.
+    /// When piece timer expires, you cannot remove anymore pieces.
+    pub fn remove_piece_hidden(ctx: Context<PlacePiece>, hand_position: u8) -> ProgramResult {
+        let game = &mut ctx.accounts.game;
+        let player_type = game.get_player_type(*ctx.accounts.invoker.key);
+
+        // if timer is expired, error
+        if ctx.accounts.clock.unix_timestamp > game.piece_timer.unwrap() {
+            return Err(ErrorCode::TimeError.into());
+        }
+
+        // remove piece. fail if fails
+        let placed = game.remove_piece_hidden(player_type, hand_position);
+        if placed == None {
+            return Err(ProgramError::InvalidArgument);
+        }
+        Ok(())
+    }
+
     /// state = 2. Each player reveals their second commitments. This also reveals hidden pieces in game state.
     /// State is advanced to 3 once both are revealed.
     /// Inactivity timer is set for opposing player on a succesful reveal.
