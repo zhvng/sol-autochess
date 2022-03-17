@@ -98,6 +98,7 @@ impl WasmState {
     }
 
     pub fn get_win_condition(&mut self) -> JsValue {
+        self.game.update_win_condition();
         JsValue::from_serde(&self.game.win_condition).unwrap()
     }
 
