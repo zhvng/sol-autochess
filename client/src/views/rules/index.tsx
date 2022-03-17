@@ -9,7 +9,9 @@ export const RulesView: FC = ({ }) => {
     <div className="md:hero mx-auto p-4">
       <div className="md:hero-content flex flex-col">
         <h4 className="md:w-1/2 text-center text-slate-300 my-2 font-mono">
-          <p>How to play:</p>
+          <h1 className="text-center text-xl font-bold text-transparent bg-clip-text text-amber-100">
+            how to play
+          </h1>
           <br></br>
           <ul className="list-decimal inline-block text-left">
             <li>Create or join a game with your preferred wager amount</li>
