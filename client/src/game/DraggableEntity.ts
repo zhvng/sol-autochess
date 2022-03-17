@@ -63,6 +63,10 @@ class DraggableEntity {
         
     }
 
+    public remove() {
+        this.scene.remove(this.unit);
+    }
+
     public getRaycasterIntersection(raycaster: Raycaster): Intersection[] {
         return raycaster.intersectObject(this.model, true);
     }

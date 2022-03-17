@@ -13,6 +13,8 @@ import { Program } from "@project-serum/anchor";
 import { GameInputs } from "utils/gameInputs";
 import ContractController from "./ContractController";
 import { GameProgress } from "./Utils";
+import PiecePlacementManager from "./PiecePlacementManager";
+import Entity from "./Entity";
 
 const stats = Stats();
 stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -24,6 +26,7 @@ class Game {
     private readonly camera: PerspectiveCamera;
     private readonly board: Board;
     private readonly entityManager: EntityManager;
+    private readonly piecePlacementManager: PiecePlacementManager;
     private wasmController?: WasmController;
     private contractController?: ContractController
 
@@ -63,6 +66,7 @@ class Game {
         this.setupWindow();
 
         this.entityManager = this.createEntityManager();
+        this.piecePlacementManager = this.createPiecePlacementManager(this.entityManager);
 
         this.newGame(gamePDAKey, program, gameInputs);
         this.loop();
@@ -91,11 +95,11 @@ class Game {
         });
     }
 
-    public newGame(gamePDAKey, program, gameInputs) {
+    public async newGame(gamePDAKey, program, gameInputs) {
         this.wasmController = new WasmController();
-        this.entityManager.attachToNewGame(this.wasmController);
-        this.contractController = new ContractController(this.scene, this.camera, gamePDAKey, program, gameInputs, this.entityManager);
-        this.entityManager.attachToNewContract(this.contractController);
+        this.entityManager.attachWasmController(this.wasmController);
+        this.contractController = await ContractController.createContractController(this.scene, this.camera, gamePDAKey, program, gameInputs, this.entityManager);
+        this.piecePlacementManager.attachNewContract(this.contractController);
 
         // setTimeout(()=>{
         //     // this.placePiece(7, 2, UnitTypeWasm.Wolf, ControllerWasm.Initializer);
@@ -124,10 +128,8 @@ class Game {
 
     private updateGame() {
         if (this.wasmController !== undefined && this.contractController !== undefined) {
-            if (this.contractController.gameProgress === GameProgress.InProgress) {
-                this.wasmController.step();
-                const entities: Array<any> = this.wasmController.getEntities().all;
-                this.entityManager.updateGame(entities);
+            if (this.entityManager.simulationInProgress) {
+                this.entityManager.updateGame();
             }
         }
     }
@@ -168,7 +170,11 @@ class Game {
     }
 
     private createEntityManager(): EntityManager {
-        return new EntityManager(this.scene, this.logicUpdatePeriod, this.camera);
+        return new EntityManager(this.scene, this.logicUpdatePeriod);
+    }
+
+    private createPiecePlacementManager(entityManager: EntityManager): PiecePlacementManager {
+        return new PiecePlacementManager(this.scene, this.camera, entityManager)
     }
 
     /**

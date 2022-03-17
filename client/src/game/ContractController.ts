@@ -13,7 +13,6 @@ import BN from 'bn.js';
 import Game from "./Game";
 import { draw_private_hand, UnitTypeWasm } from "wasm-client";
 import EntityManager from "./EntityManager";
-import WasmController from "./WasmController";
 
 class ContractController {
     private _gameProgress: GameProgress;
@@ -26,6 +25,7 @@ class ContractController {
     private _isInitializer: boolean = true;
     private lastGameState?;
     private _hand?: Array<UnitTypeWasm>;
+    private txCount: number = 0;
 
     private burnerWallet: Keypair;
 
@@ -40,9 +40,6 @@ class ContractController {
         this.gameProgress = GameProgress.WaitingForOpponent;
 
         this.burnerWallet = Keypair.fromSecretKey(Uint8Array.from(this.gameInputs.burnerWalletSecret));
-        this.interval = setInterval(()=>{
-            this.updateState();
-        }, 5000);
         this.initState();
 
         const timerDiv = document.createElement('div');
@@ -50,6 +47,19 @@ class ContractController {
         this.timer = new CSS2DObject(timerDiv);
         this.timer.position.set(0,20,0);
         this.scene.add(this.timer);
+    }
+
+    public static async createContractController( 
+        scene: Scene, 
+        camera: Camera, 
+        gamePDAKey: PublicKey, 
+        program: Program, 
+        gameInputs: GameInputs,
+        entityManager: EntityManager
+    ) {
+        const controller = new ContractController(scene, camera, gamePDAKey, program, gameInputs, entityManager);
+        await controller.initState();
+        return controller;
     }
 
     /**
@@ -134,12 +144,13 @@ class ContractController {
                 }
             } else if (account.state === 3) {
                 if (account.winCondition['inProgress'] !== undefined) {
-                    this.gameProgress = GameProgress.InProgress;
+                    this.gameProgress = GameProgress.PopulateBoard;
                 } else {
                     this.gameProgress = GameProgress.End;
                 }
             }
             this.draw();
+            setTimeout(()=>this.updateState(),500);
         } catch(error) {
             notify({ type: 'error', message: `Error!`, description: error?.message });
             this.drawError();
@@ -163,20 +174,28 @@ class ContractController {
     }
 
     private async updateState() {
-        console.log(this.gameProgress);
+        console.log('progress:', this.gameProgress.toString(), ', txcount:', this.txCount);
         try {
             switch (this.gameProgress) {
                 case GameProgress.WaitingForOpponent:
                     await this.fetchGameState();
                     if (this.lastGameState.state === 1) {
                         this.gameProgress = GameProgress.Reveal1;
-                        this.updateState();
+                        setTimeout(()=>this.updateState(), 500);
+                        return;
                     }
                     break;
                 case GameProgress.Reveal1:
-                    // send reveal 1 and change state
+                    // send reveal1
                     this.timestamp = undefined;
                     await this.reveal1();
+                    await this.fetchGameState();
+                    if (this.lastGameState.state === 2) {
+                        this.gameProgress = GameProgress.DrawPieces;
+                        this.clearTimer();
+                        setTimeout(()=>this.updateState(),200);
+                        return;
+                    }
                     break;
 
                 case GameProgress.WaitingForOpponentReveal1:
@@ -184,61 +203,61 @@ class ContractController {
                     if (this.lastGameState.state === 2) {
                         this.gameProgress = GameProgress.DrawPieces;
                         this.clearTimer();
-                        this.updateState();
+                        setTimeout(()=>this.updateState(),200);
+                        return;
                     }
                     this.setInactivityTimer();
                     break;
 
                 case GameProgress.DrawPieces:
                     await this.fetchGameState();
-                    this.entityManager.drawAndPlaceHand(this.lastGameState.reveal1 as Uint8Array, 
+                    this.entityManager.drawAndPlaceHand(Uint8Array.from(this.lastGameState.reveal1), 
                         Uint8Array.from(this.gameInputs.reveal2), this.isInitializer);
                     this.gameProgress = GameProgress.PlacePieces;
-                    this.updateState();
+                    setTimeout(()=>this.updateState(),200);
+                    return;
                     break;
 
                 case GameProgress.PlacePieces:
                     await this.fetchGameState();
                     // check timer , if timer is over reveal2
                     this.timestamp = (this.lastGameState.pieceTimer as BN).toNumber();
-                    // if (this.timeRemaining() === 0) {
-                    //     this.gameProgress = GameProgress.Reveal2;
-                    //     this.updateState();
-                    // }
+                    if (this.timeRemaining() === 0) {
+                        this.gameProgress = GameProgress.Reveal2;
+                        setTimeout(()=>this.updateState(), 500);
+                        return;
+                    }
                     break;
 
                 case GameProgress.Reveal2:
-                    this.gameProgress = GameProgress.WaitingForOpponentReveal2;
                     this.timestamp = undefined;
                     await this.reveal2();
+                    await this.fetchGameState();
+                    if (this.lastGameState.state === 3) {
+                        this.gameProgress = GameProgress.PopulateBoard;
+                        this.clearTimer();
+                        setTimeout(()=>this.updateState(),200);
+                        return;
+                    }
                     break;
 
                 case GameProgress.WaitingForOpponentReveal2:
                     await this.fetchGameState();
 
                     if (this.lastGameState.state === 3) {
-                        this.gameProgress = GameProgress.InProgress;
+                        this.gameProgress = GameProgress.PopulateBoard;
                         this.clearTimer();
-                        this.updateState();
+                        setTimeout(()=>this.updateState(),200);
+                        return;
                     }
                     this.setInactivityTimer();
                     break;
-
+                case GameProgress.PopulateBoard:
+                    this.entityManager.populateRevealedBoard(this.lastGameState.entities.all);
+                    this.gameProgress = GameProgress.InProgress;
+                    break;
                 case GameProgress.InProgress:
-                    notify({ type: 'info', message: 'simulating game...' });
-                    // crank game a ton
-                    for (let i=0; i<5; i++) {
-                        const tx = this.program.transaction.crankGame(5 + i, {
-                            accounts: {
-                            game: this.gamePDAKey,
-                            invoker: this.burnerWallet.publicKey,
-                            },
-                            signers: [this.burnerWallet],
-                        });
-                        web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
-                            this.burnerWallet
-                        ]);
-                    }
+                    if (this.entityManager.simulationInProgress === false) this.entityManager.simulationInProgress = true;
                     await this.fetchGameState();
                     const winCondition = this.lastGameState.winCondition;
                     if (winCondition !== undefined) {
@@ -246,8 +265,28 @@ class ContractController {
                             console.log(this.lastGameState);
                             this.gameProgress = GameProgress.End;
                             this.updateState();
+                            return;
                         }
                     }
+                    notify({ type: 'info', message: 'simulating game...' });
+                    // crank game a ton
+                    for (let i=0; i<5; i++) {
+                        const n = 5 + i + Math.floor(this.lastGameState.tick / 20);
+                        console.log(n);
+                        const tx = this.program.transaction.crankGame(n, {
+                            accounts: {
+                                game: this.gamePDAKey,
+                                invoker: this.burnerWallet.publicKey,
+                            },
+                            signers: [this.burnerWallet],
+                        });
+                        web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
+                            this.burnerWallet
+                        ]);
+                        this.txCount += 1;
+                    }
+
+                    break;
 
                 case GameProgress.End: {
                     // check who won
@@ -260,7 +299,8 @@ class ContractController {
                         if (this.isInitializer) this.gameProgress = GameProgress.EndLose;
                         else this.gameProgress = GameProgress.EndWin;
                     }
-                    await this.drainBurner();
+                    // drain burner
+                    const drained = await this.drainBurner();
                     break;
                 }
 
@@ -271,12 +311,16 @@ class ContractController {
                     } catch(err) {
                         console.log(err);
                     }
+
+                    break;
                 }
             }
         } catch(error) {
             notify({ type: 'error', message: `Error retreiving game account`, description: error?.message });
-            console.log('error', `Connection error! ${error?.message}`);
+            console.log('error', `Error! ${error?.message}`);
+            console.log(error);
         }
+        setTimeout(()=>this.updateState(), 5000);
         this.draw()
     }
 
@@ -311,9 +355,11 @@ class ContractController {
 
         const button3 = document.createElement('button');
         button3.addEventListener('click', async ()=>{
-            await this.drainBurner();
-            clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
-            window.location.href = '/';
+            const drained = await this.drainBurner();
+            if (drained) {
+                clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
+                window.location.href = '/';
+            }
         });
         button3.innerHTML="empty burner wallet";
         button3.style.display = 'block';
@@ -432,10 +478,10 @@ class ContractController {
                 this.placePiecesObject.visible = false;
             }
         }
-
-        if (this.gameProgress === GameProgress.EndTie 
+        console.log(this.entityManager.simulationInProgress)
+        if (!this.entityManager.simulationInProgress && (this.gameProgress === GameProgress.EndTie 
             || this.gameProgress === GameProgress.EndWin
-            || this.gameProgress === GameProgress.EndLose) {
+            || this.gameProgress === GameProgress.EndLose)) {
 
             const gameOverDiv = document.createElement('div');
 
@@ -478,17 +524,35 @@ class ContractController {
             } else {
                 gameOverDiv.innerHTML=(`
                     <div style="font-size:48px;color:gray;">you lose :(</div>
-                    <div style="font-size:16px;color:gray; width:50%; margin: auto;">Sending burner funds back to main wallet... will redirect when finished</div>
+                    <div style="font-size:16px;color:gray; width:50%; margin: auto;">Sending burner funds back to main wallet...</div>
                 `)
+                const button = document.createElement('button');
+                button.addEventListener('pointerdown', async ()=>{
+                    console.log('returning');
+                    const drained = await this.drainBurner();
+                    if (drained) {
+                        clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
+                        window.location.href = '/';
+                    }
+                });
+                button.innerHTML=`return`;
+                button.style.border = '2px solid gray';
+                button.style.color = 'gray';
+                button.style.fontSize = '18px';
+                button.style.padding = '5px';
+                button.style.marginTop = '10px';
+                gameOverDiv.appendChild(button);
             }
 
             
             gameOverDiv.style.position = 'absolute';
+            gameOverDiv.style.zIndex = '100';
 
             gameOverDiv.style.textAlign ='center';
             gameOverDiv.style.width ='100%';
             gameOverDiv.style.backgroundColor ='white';
             gameOverDiv.style.padding ='10px';
+ 
             const gameOverObject = new CSS2DObject(gameOverDiv)
             gameOverObject.position.setY(5);
             this.scene.add(gameOverObject);
@@ -498,7 +562,7 @@ class ContractController {
     private async claimVictory() {
         console.log('sending claim victory');
         let signature = '';
-        try {
+        try {    
             await this.program.rpc.claimVictory({
                 accounts: {
                   game: this.gamePDAKey,
@@ -509,13 +573,17 @@ class ContractController {
             });
 
             notify({ type: 'success', message: 'Transaction successful!', txid: signature });
-            clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
-            window.location.href = '/';
+            const drained = await this.drainBurner();
+            if (drained) {
+                clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
+                window.location.href = '/';
+            }
         } catch (error: any) {
             notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });
             console.log('error', `Transaction failed! ${error?.message}`, signature);
             return;
         }
+        this.txCount += 1;
     }
 
     private async getBurnerBalance(): Promise<number> {
@@ -526,14 +594,14 @@ class ContractController {
         return balance;
     }
 
-    private async drainBurner() {
+    private async drainBurner(): Promise<boolean> {
         let signature = '';
         try{
             const balance = await this.getBurnerBalance();
             const fee = 5000 * 2; // hardcoded, but should be enough for the time being. migrate to getFeeForMessage
 
             if (balance <= fee) {
-                return;
+                return true;
             }
 
             const drainBurnerWalletIx = SystemProgram.transfer({
@@ -549,8 +617,10 @@ class ContractController {
         } catch (error: any) {
             notify({ type: 'error', message: `Failed to drain burner wallet!`, description: error?.message, txid: signature });
             console.log('error', `Transaction failed! ${error?.message}`, signature);
-            return;
+            return false;
         }
+        this.txCount += 1;
+        return true;
     }
 
     private async claimInactivity() {
@@ -592,9 +662,10 @@ class ContractController {
     }
 
     private async reveal1() {
-        this.gameProgress = GameProgress.WaitingForOpponentReveal1;
+        console.log('sending reveal1');
         let signature = '';
         try {
+            this.gameProgress = GameProgress.WaitingForOpponentReveal1;
             const tx = this.program.transaction.revealFirst(this.gameInputs.reveal1, this.gameInputs.secret1, {
                 accounts: {
                   game: this.gamePDAKey,
@@ -613,12 +684,14 @@ class ContractController {
             console.log('error', `Transaction failed! ${error?.message}`, signature);
             this.gameProgress = GameProgress.Reveal1;
         }
+        this.txCount += 1;
     }
 
     private async reveal2() {
-        this.gameProgress = GameProgress.WaitingForOpponentReveal2;
+        console.log('sending reveal2');
         let signature = '';
         try {
+            this.gameProgress = GameProgress.WaitingForOpponentReveal2;
             const tx = this.program.transaction.revealSecond(this.gameInputs.reveal2, this.gameInputs.secret2, {
                 accounts: {
                   game: this.gamePDAKey,
@@ -637,6 +710,7 @@ class ContractController {
             console.log('error', `Reveal transaction failed! ${error?.message}`, signature);
             this.gameProgress = GameProgress.Reveal2;
         }
+        this.txCount += 1;
     }
 
     private async cancelGame() {
@@ -673,6 +747,7 @@ class ContractController {
             console.log('error', `Transaction failed! ${error?.message}`, signature);
             return;
         }
+        this.txCount += 1;
     }
     public async placePiece(gridX: number, gridY: number, handPosition: number): Promise<boolean> {
         let signature = '';
@@ -696,6 +771,57 @@ class ContractController {
             console.log('error', `Transaction failed! ${error?.message}`, signature);
             return false;
         }
+        this.txCount += 1;
+        return true;
+    }
+    public async movePiece(gridX: number, gridY: number, handPosition: number): Promise<boolean> {
+        let signature = '';
+        try {
+            notify({ type: 'info', message: `moving piece #${handPosition} to (${gridX}, ${gridY})`, txid: signature });
+            
+            const tx = this.program.transaction.movePieceHidden(gridX, gridY, handPosition, {
+                accounts: {
+                  game: this.gamePDAKey,
+                  invoker: this.burnerWallet.publicKey,
+                  clock: web3.SYSVAR_CLOCK_PUBKEY,
+                },
+                signers: [this.burnerWallet]
+            });
+            signature = await web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
+                this.burnerWallet
+            ]);
+            notify({ type: 'success', message: 'Transaction successful!', txid: signature });
+        } catch (error: any) {
+            notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });
+            console.log('error', `Transaction failed! ${error?.message}`, signature);
+            return false;
+        }
+        this.txCount += 1;
+        return true;
+    }
+    public async removePiece(handPosition: number): Promise<boolean> {
+        let signature = '';
+        try {
+            notify({ type: 'info', message: `removing piece #${handPosition}`, txid: signature });
+            
+            const tx = this.program.transaction.removePieceHidden(handPosition, {
+                accounts: {
+                  game: this.gamePDAKey,
+                  invoker: this.burnerWallet.publicKey,
+                  clock: web3.SYSVAR_CLOCK_PUBKEY,
+                },
+                signers: [this.burnerWallet]
+            });
+            signature = await web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
+                this.burnerWallet
+            ]);
+            notify({ type: 'success', message: 'Transaction successful!', txid: signature });
+        } catch (error: any) {
+            notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });
+            console.log('error', `Transaction failed! ${error?.message}`, signature);
+            return false;
+        }
+        this.txCount += 1;
         return true;
     }
 }

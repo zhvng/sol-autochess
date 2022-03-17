@@ -45,8 +45,19 @@ class WasmController {
         return this.wasmState.place_piece(x, y, unitType, controller);
     }
 
+    public placePieceWithId(id: number, x: number, y: number, unitType: UnitTypeWasm, controller: ControllerWasm) {
+        console.log('placing piece')
+        return this.wasmState.place_piece_with_id(id, x, y, unitType, controller);
+    }
+
     public step() {
         this.wasmState.step();
+    }
+
+    public isSimulationOver() {
+        const winCondition = this.wasmState.get_win_condition();
+        if (winCondition !== 'InProgress') return true; 
+        return false;
     }
 
     public getEntities() {

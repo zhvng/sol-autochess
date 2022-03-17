@@ -225,6 +225,66 @@
       ]
     },
     {
+      "name": "movePieceHidden",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "invoker",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "gridX",
+          "type": "u16"
+        },
+        {
+          "name": "gridY",
+          "type": "u16"
+        },
+        {
+          "name": "handPosition",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "removePieceHidden",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "invoker",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "handPosition",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "revealSecond",
       "accounts": [
         {

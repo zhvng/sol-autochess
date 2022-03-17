@@ -25,24 +25,28 @@ export const createGameInputs = (gamePDAKey: PublicKey, walletPubkey: PublicKey)
     let gameInputs: GameInputs | undefined = undefined;
     const storageKey = getStorageKey(gamePDAKey, walletPubkey);
     
-    const burnerWallet = Keypair.generate();
-    const burnerWalletSecret = Array.from(burnerWallet.secretKey);
-    const reveal1 = Array.from(createHash('sha256').update(uuidv4()).digest());
-    const secret1 = Array.from(createHash('sha256').update(uuidv4()).digest());
-    const commitment1 = Array.from(createHash('sha256').update(Buffer.from([...reveal1, ...secret1])).digest());
-    const reveal2 = Array.from(createHash('sha256').update(uuidv4()).digest());
-    const secret2 = Array.from(createHash('sha256').update(uuidv4()).digest());
-    const commitment2 = Array.from(createHash('sha256').update(Buffer.from([...reveal2, ...secret2])).digest());
-    const mainWalletPublicKey = Array.from(walletPubkey.toBytes());
-    
-    gameInputs = {
-      burnerWalletSecret,
-      commitment1, reveal1, secret1,
-      commitment2, reveal2, secret2,
-      mainWalletPublicKey,
+    if (localStorage.getItem(storageKey) === null) {
+      const burnerWallet = Keypair.generate();
+      const burnerWalletSecret = Array.from(burnerWallet.secretKey);
+      const reveal1 = Array.from(createHash('sha256').update(uuidv4()).digest());
+      const secret1 = Array.from(createHash('sha256').update(uuidv4()).digest());
+      const commitment1 = Array.from(createHash('sha256').update(Buffer.from([...reveal1, ...secret1])).digest());
+      const reveal2 = Array.from(createHash('sha256').update(uuidv4()).digest());
+      const secret2 = Array.from(createHash('sha256').update(uuidv4()).digest());
+      const commitment2 = Array.from(createHash('sha256').update(Buffer.from([...reveal2, ...secret2])).digest());
+      const mainWalletPublicKey = Array.from(walletPubkey.toBytes());
+      
+      gameInputs = {
+        burnerWalletSecret,
+        commitment1, reveal1, secret1,
+        commitment2, reveal2, secret2,
+        mainWalletPublicKey,
+      }
+      localStorage.setItem(storageKey, JSON.stringify(gameInputs));
+      console.log('Created and stored new reveals, commits and secrets for ', gamePDAKey.toBase58());
+    } else {
+      gameInputs = JSON.parse(localStorage.getItem(storageKey));
     }
-    localStorage.setItem(storageKey, JSON.stringify(gameInputs));
-    console.log('Created and stored new reveals, commits and secrets for ', gamePDAKey.toBase58());
 
     return gameInputs;
 }

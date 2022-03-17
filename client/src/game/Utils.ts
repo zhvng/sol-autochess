@@ -1,4 +1,5 @@
 import { Bone, BoxBufferGeometry, Object3D, SkinnedMesh, Vector2, Vector3 } from "three"
+import { ControllerWasm, UnitTypeWasm } from "wasm-client";
 
 export enum GameProgress {
     WaitingForOpponent,
@@ -8,6 +9,7 @@ export enum GameProgress {
     PlacePieces,
     Reveal2,
     WaitingForOpponentReveal2,
+    PopulateBoard,
     InProgress,
     End,
     EndTie,
@@ -27,6 +29,33 @@ export enum UnitState {
     Attacking,
     Idle,
     Dead,
+}
+
+
+export const parseUnitTypeFromAnchor = (unitType: any): UnitTypeWasm | 'hidden' => {
+    
+    if (unitType['wolf'] !== undefined) {
+        return UnitTypeWasm.Wolf;
+    }
+    if (unitType['bear'] !== undefined) {
+        return UnitTypeWasm.Bear;
+    }
+    if (unitType['bull'] !== undefined) {
+        return UnitTypeWasm.Bull;
+    }
+    if (unitType['hidden'] !== undefined) {
+        return 'hidden';
+    }
+
+    throw new Error('should never get here');
+}
+export const parseControllerFromAnchor = (controller: String): ControllerWasm => {
+    if(controller['initializer'] !== undefined) return ControllerWasm.Initializer;
+    if(controller['opponent'] !== undefined) return ControllerWasm.Opponent;
+    if(controller['graveyard'] !== undefined) return ControllerWasm.Graveyard;
+    if(controller['contract'] !== undefined) return ControllerWasm.Contract;
+
+    throw new Error('should never get here');
 }
 
 export const boardCoordinatesTo3D =(boardPosition: Vector2): Vector3 => {

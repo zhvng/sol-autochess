@@ -63,15 +63,10 @@ const Notification = ({ type, message, description, txid, onHide, reversedIndex 
     };
   }, []);
 
-  let opacity = 0;
-  if (reversedIndex === 0) opacity = 1;
-  if (reversedIndex === 1) opacity = .5;
-  if (reversedIndex === 2) opacity = .25;
-  if (reversedIndex === 3) opacity = .1;
 
   return (
     <div
-      style={{opacity}}
+      style={{visibility: reversedIndex===0 ? 'visible' : 'hidden'}}
       className={`max-w-sm w-full bg-slate-600/[.4] bg-bkg-1 shadow-lg rounded-md mt-2 pointer-events-auto ring-1 ring-black ring-opacity-5 p-2 mx-4 mb-2 overflow-hidden`}
     >
       <div className={`p-4`}>
