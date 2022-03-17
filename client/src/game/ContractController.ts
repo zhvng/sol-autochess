@@ -210,12 +210,14 @@ class ContractController {
                     break;
 
                 case GameProgress.DrawPieces:
-                    await this.fetchGameState();
-                    this.entityManager.drawAndPlaceHand(Uint8Array.from(this.lastGameState.reveal1), 
-                        Uint8Array.from(this.gameInputs.reveal2), this.isInitializer);
-                    this.gameProgress = GameProgress.PlacePieces;
-                    setTimeout(()=>this.updateState(),200);
-                    return;
+                    if (this.entityManager.loading === false ) {
+                        await this.fetchGameState();
+                        this.entityManager.drawAndPlaceHand(Uint8Array.from(this.lastGameState.reveal1), 
+                            Uint8Array.from(this.gameInputs.reveal2), this.isInitializer);
+                        this.gameProgress = GameProgress.PlacePieces;
+                        setTimeout(()=>this.updateState(),200);
+                        return;
+                    }
                     break;
 
                 case GameProgress.PlacePieces:
@@ -254,8 +256,10 @@ class ContractController {
                     this.setInactivityTimer();
                     break;
                 case GameProgress.PopulateBoard:
-                    this.entityManager.populateRevealedBoard(this.lastGameState.entities.all);
-                    this.gameProgress = GameProgress.InProgress;
+                    if (this.entityManager.loading === false ) {
+                        this.entityManager.populateRevealedBoard(this.lastGameState.entities.all);
+                        this.gameProgress = GameProgress.InProgress;
+                    }
                     break;
                 case GameProgress.InProgress:
                     if (this.entityManager.simulationStarted === false) this.entityManager.simulationStarted = true;

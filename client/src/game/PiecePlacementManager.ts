@@ -116,7 +116,9 @@ class PiecePlacementManager {
                         if (lastSafePosition.y < 0 || lastSafePosition.y > 7) {
                             success = await this.contractController.placePiece(gridPosition.x, gridPosition.y, draggingId);
                         } else {
-                            success = await this.contractController.movePiece(gridPosition.x, gridPosition.y, draggingId);
+                            if (gridPosition.x !== lastSafePosition.x || gridPosition.y !== lastSafePosition.y) {
+                                success = await this.contractController.movePiece(gridPosition.x, gridPosition.y, draggingId);
+                            }
                         }
 
                     } else {

@@ -187,13 +187,8 @@ class EntityManager {
                             this.createHiddenEntity(entity.id, position);
                             entitiesInPlay.add(entity.id);
                         }
-                    } else {
-                        throw new Error('not a hidden entity');
                     }
                 }
-            } else {
-                console.log(entity);
-                throw new Error('incorrect params for entity creation');
             }
         }
         for (const [id, element] of this.hiddenEntities) {
