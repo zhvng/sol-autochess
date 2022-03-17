@@ -397,7 +397,7 @@ describe('autochess', async () => {
         assert(entity.unitType['hidden'] === undefined, "no hidden units left");
       }
       done();
-    }, 95 * 1000);
+    }, 66 * 1000);
   });
 
   it('crank', async ()=>{
