@@ -88,8 +88,17 @@ impl WasmState {
         return placed.unwrap();
     }
 
+    pub fn place_piece_with_id(&mut self, id: u16, x:u16, y: u16, unit_type: UnitTypeWasm, player_type: ControllerWasm) -> u16 {
+        let placed = self.game.place_piece_with_id(id, player_type.convert(), x, y, unit_type.convert());
+        return placed.unwrap();
+    }
+
     pub fn step(&mut self) {
         self.game.step(&self.unit_map);
+    }
+
+    pub fn get_win_condition(&mut self) -> JsValue {
+        JsValue::from_serde(&self.game.win_condition).unwrap()
     }
 
     pub fn get_game(&mut self) -> JsValue {
