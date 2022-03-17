@@ -1,9 +1,9 @@
-import { AnimationAction, AnimationClip, AnimationMixer, Group, LoopOnce, Object3D, Quaternion, QuaternionKeyframeTrack, Scene, Vector2, Vector3, VectorKeyframeTrack } from "three";
+import { AnimationAction, AnimationClip, AnimationMixer, Group, Intersection, LoopOnce, Object3D, Quaternion, QuaternionKeyframeTrack, Raycaster, Scene, Vector2, Vector3, VectorKeyframeTrack } from "three";
 import { GLTF } from "three/examples/jsm/loaders/GLTFLoader";
 import { ControllerWasm, UnitTypeWasm } from "wasm-client";
-import GameController from "./GameController";
+import WasmController from "./WasmController";
 import HealthBar from "./HealthBar";
-import { Animations, boardCoordinatesTo3D, cloneModel, UnitState } from "./Utils";
+import { Animations, boardCoordinatesTo3D, cloneModel, gridCoordinatesToBoardCoordinates, UnitState } from "./Utils";
 import TWEEN from '@tweenjs/tween.js';
 
 class Entity {
@@ -18,10 +18,10 @@ class Entity {
     private unit: Group;
     constructor(
         private readonly scene: Scene,
-        private readonly gameController: GameController,
+        private readonly wasmController: WasmController,
         gltf: GLTF,
         private readonly logicUpdatePeriod: number,
-        initialBoardPosition: Vector2,
+        public initialBoardPosition: Vector2,
         private readonly unitType: UnitTypeWasm,
         private readonly controller: ControllerWasm,
         startingHealth: number,
@@ -35,8 +35,12 @@ class Entity {
         this.unit.add(this.model);
         this.scene.add(this.unit);
 
-        const convertedPosition = boardCoordinatesTo3D(initialBoardPosition);
-        this.unit.position.set(convertedPosition.x, convertedPosition.y, convertedPosition.z);
+        const convertedPosition = boardCoordinatesTo3D(this.initialBoardPosition);
+        if (this.initialBoardPosition.y < 0 || this.initialBoardPosition.y > 800) {
+            this.unit.position.set(convertedPosition.x, -2, convertedPosition.z);
+        } else {
+            this.unit.position.set(convertedPosition.x, convertedPosition.y, convertedPosition.z);
+        }
 
         // load animations
         this.mixer = new AnimationMixer( this.model );
@@ -120,7 +124,7 @@ class Entity {
         if (e.state['Attack'] !== undefined) {
             const targetId = e.state['Attack'].target_id;
             if (this.attackTargetId !== targetId) {
-                const target_position = this.gameController.getEntityById(targetId).position ?? {x: 400, y: 400};
+                const target_position = this.wasmController.getEntityById(targetId).position ?? {x: 400, y: 400};
                 this.attackTargetId = targetId
                 this.smoothLookAt(this.unit, boardCoordinatesTo3D(new Vector2(target_position.x, target_position.y)), 500);
             }

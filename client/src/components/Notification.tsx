@@ -14,26 +14,27 @@ const NotificationList = () => {
     (s) => s
   )
 
-  const reversedNotifications = [...notifications].reverse()
+  // const reversedNotifications = notifications;
 
   return (
     <div
       className={`z-20 fixed inset-0 flex items-end px-4 py-6 pointer-events-none sm:p-6`}
     >
       <div className={`flex flex-col w-full`}>
-        {reversedNotifications.map((n, idx) => (
+        {notifications.map((n, idx) => (
           <Notification
             key={`${n.message}${idx}`}
             type={n.type}
             message={n.message}
             description={n.description}
             txid={n.txid}
+            reversedIndex={notifications.length - 1 - idx}
             onHide={() => {
               setNotificationStore((state: any) => {
-                const reversedIndex = reversedNotifications.length - 1 - idx;
+                // const reversedIndex = reversedNotifications.length - 1 - idx;
                 state.notifications = [
-                  ...notifications.slice(0, reversedIndex),
-                  ...notifications.slice(reversedIndex + 1),
+                  ...notifications.slice(0, idx),
+                  ...notifications.slice(idx + 1),
                 ];
               });
             }}
@@ -44,7 +45,7 @@ const NotificationList = () => {
   );
 }
 
-const Notification = ({ type, message, description, txid, onHide }) => {
+const Notification = ({ type, message, description, txid, onHide, reversedIndex }) => {
   const { connection } = useConnection();
 
   // TODO: we dont have access to the network or endpoint here.. 
@@ -62,8 +63,15 @@ const Notification = ({ type, message, description, txid, onHide }) => {
     };
   }, []);
 
+  let opacity = 0;
+  if (reversedIndex === 0) opacity = 1;
+  if (reversedIndex === 1) opacity = .5;
+  if (reversedIndex === 2) opacity = .25;
+  if (reversedIndex === 3) opacity = .1;
+
   return (
     <div
+      style={{opacity}}
       className={`max-w-sm w-full bg-slate-600/[.4] bg-bkg-1 shadow-lg rounded-md mt-2 pointer-events-auto ring-1 ring-black ring-opacity-5 p-2 mx-4 mb-2 overflow-hidden`}
     >
       <div className={`p-4`}>

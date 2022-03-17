@@ -4,13 +4,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer';
 import Board from "./Board";
 import Stats from 'three/examples/jsm/libs/stats.module';
-import GameController from "./GameController";
+import WasmController from "./WasmController";
 import { ControllerWasm, UnitTypeWasm } from "wasm-client";
 import EntityManager from "./EntityManager";
 import { PublicKey } from "@solana/web3.js";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
 import { Program } from "@project-serum/anchor";
 import { GameInputs } from "utils/gameInputs";
+import ContractController from "./ContractController";
+import { GameProgress } from "./Utils";
 
 const stats = Stats();
 stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -22,7 +24,8 @@ class Game {
     private readonly camera: PerspectiveCamera;
     private readonly board: Board;
     private readonly entityManager: EntityManager;
-    private gameController?: GameController;
+    private wasmController?: WasmController;
+    private contractController?: ContractController
 
     private previousRenderFrame: DOMHighResTimeStamp | undefined = undefined; //ms
     private previousLogicFrame: DOMHighResTimeStamp | undefined = undefined; //ms
@@ -59,7 +62,7 @@ class Game {
         //   controls.update();
         this.setupWindow();
 
-        this.entityManager = new EntityManager(this.scene, this.logicUpdatePeriod);
+        this.entityManager = this.createEntityManager();
 
         this.newGame(gamePDAKey, program, gameInputs);
         this.loop();
@@ -89,8 +92,10 @@ class Game {
     }
 
     public newGame(gamePDAKey, program, gameInputs) {
-        this.gameController = new GameController(this.scene, this.camera, gamePDAKey, program, gameInputs);
-        this.entityManager.attachToNewGame(this.gameController);
+        this.wasmController = new WasmController();
+        this.entityManager.attachToNewGame(this.wasmController);
+        this.contractController = new ContractController(this.scene, this.camera, gamePDAKey, program, gameInputs, this.entityManager);
+        this.entityManager.attachToNewContract(this.contractController);
 
         // setTimeout(()=>{
         //     // this.placePiece(7, 2, UnitTypeWasm.Wolf, ControllerWasm.Initializer);
@@ -114,14 +119,16 @@ class Game {
     private update(timeElapsed: number): void {
         if (this.board !== undefined) this.board.update();
         if (this.entityManager !== undefined) this.entityManager.update(timeElapsed);
-        if (this.gameController !== undefined) this.gameController.update();
+        if (this.contractController !== undefined) this.contractController.update();
     }
 
     private updateGame() {
-        if (this.gameController !== undefined) {
-            this.gameController.step();
-            const entities: Array<any> = this.gameController.getEntities().all;
-            this.entityManager.updateGame(entities);
+        if (this.wasmController !== undefined && this.contractController !== undefined) {
+            if (this.contractController.gameProgress === GameProgress.InProgress) {
+                this.wasmController.step();
+                const entities: Array<any> = this.wasmController.getEntities().all;
+                this.entityManager.updateGame(entities);
+            }
         }
     }
 
@@ -158,6 +165,10 @@ class Game {
 
     private createBoard(): Board {
         return new Board(this.scene, this.camera);
+    }
+
+    private createEntityManager(): EntityManager {
+        return new EntityManager(this.scene, this.logicUpdatePeriod, this.camera);
     }
 
     /**
