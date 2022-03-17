@@ -7,10 +7,10 @@ const Home: NextPage = (props) => {
   return (
     <div>
       <Head>
-        <title></title>
+        <title>sol autochess</title>
         <meta
           name="description"
-          content="Solana Arena"
+          content="play solana autochess"
         />
       </Head>
       <AppBar/>

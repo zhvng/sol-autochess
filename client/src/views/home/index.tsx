@@ -22,6 +22,7 @@ export const HomeView: FC = ({ }) => {
           sol autochess
         </h1>
         <h4 className="md:w-1/2 text-center text-slate-300 my-2 font-mono">
+          <p>(devnet)</p>
           <hr></hr>
           <br></br>
           <p>Fully on chain. No game servers. 0% rake.</p>
@@ -31,13 +32,13 @@ export const HomeView: FC = ({ }) => {
           <br></br>
           <p>How to play:</p>
           <br></br>
-          <ol className="inline-block text-left">
-            <li>1. Create or join a game with your preferred wager amount</li>
-            <li>2. At the start of the game, you draw 5 random units</li>
-            <li>3. Place any 3 of them on your side of the board</li>
-            <li>4. When the timer expires, the units will start fighting</li>
-            <li>5. Player with units left standing wins the wagered sol</li>
-          </ol>
+          <ul className="list-decimal inline-block text-left">
+            <li>Create or join a game with your preferred wager amount</li>
+            <li>At the start of the game, you draw 5 random units</li>
+            <li>Place any 3 of them on your side of the board</li>
+            <li>When the timer expires, the units will start fighting</li>
+            <li>Player with units left standing wins the wagered sol</li>
+          </ul>
           <br></br>
           <br></br>
           <hr></hr>

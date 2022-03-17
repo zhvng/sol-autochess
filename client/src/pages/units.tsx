@@ -1,22 +1,22 @@
 import { AppBar } from "components/AppBar";
 import type { NextPage } from "next";
 import Head from "next/head";
-import { BasicsView } from "../views";
+import { UnitsView } from "../views";
 
-const Basics: NextPage = (props) => {
+const Units: NextPage = (props) => {
   return (
     <div>
       <Head>
-        <title>Solana Scaffold</title>
+        <title>units</title>
         <meta
           name="description"
-          content="Basic Functionality"
+          content="unit descriptions"
         />
       </Head>
       <AppBar/>
-      <BasicsView />
+      <UnitsView />
     </div>
   );
 };
 
-export default Basics;
+export default Units;
