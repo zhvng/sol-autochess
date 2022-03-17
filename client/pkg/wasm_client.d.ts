@@ -4,6 +4,12 @@
 */
 export function greet(): void;
 /**
+* @param {Uint8Array} finished_reveal_1
+* @param {Uint8Array} player_reveal_2
+* @returns {any}
+*/
+export function draw_private_hand(finished_reveal_1: Uint8Array, player_reveal_2: Uint8Array): any;
+/**
 * Initialize Javascript logging and panic handler
 */
 export function init(): void;
@@ -326,8 +332,21 @@ export class WasmState {
 */
   place_piece(x: number, y: number, unit_type: number, player_type: number): number;
 /**
+* @param {number} id
+* @param {number} x
+* @param {number} y
+* @param {number} unit_type
+* @param {number} player_type
+* @returns {number}
+*/
+  place_piece_with_id(id: number, x: number, y: number, unit_type: number, player_type: number): number;
+/**
 */
   step(): void;
+/**
+* @returns {any}
+*/
+  get_win_condition(): any;
 /**
 * @returns {any}
 */
@@ -352,10 +371,13 @@ export interface InitOutput {
   readonly __wbg_wasmlocation_free: (a: number) => void;
   readonly wasmstate_new: () => number;
   readonly wasmstate_place_piece: (a: number, b: number, c: number, d: number, e: number) => number;
+  readonly wasmstate_place_piece_with_id: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
   readonly wasmstate_step: (a: number) => void;
+  readonly wasmstate_get_win_condition: (a: number) => number;
   readonly wasmstate_get_game: (a: number) => number;
   readonly wasmstate_get_entities: (a: number) => number;
   readonly wasmstate_get_entity_by_id: (a: number, b: number) => number;
+  readonly draw_private_hand: (a: number, b: number, c: number, d: number) => number;
   readonly entrypoint: (a: number) => number;
   readonly __wbg_instruction_free: (a: number) => void;
   readonly pubkey_constructor: (a: number, b: number) => void;

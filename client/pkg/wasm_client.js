@@ -191,6 +191,26 @@ export function greet() {
     wasm.greet();
 }
 
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1);
+    getUint8Memory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+/**
+* @param {Uint8Array} finished_reveal_1
+* @param {Uint8Array} player_reveal_2
+* @returns {any}
+*/
+export function draw_private_hand(finished_reveal_1, player_reveal_2) {
+    var ptr0 = passArray8ToWasm0(finished_reveal_1, wasm.__wbindgen_malloc);
+    var len0 = WASM_VECTOR_LEN;
+    var ptr1 = passArray8ToWasm0(player_reveal_2, wasm.__wbindgen_malloc);
+    var len1 = WASM_VECTOR_LEN;
+    var ret = wasm.draw_private_hand(ptr0, len0, ptr1, len1);
+    return takeObject(ret);
+}
+
 function _assertClass(instance, klass) {
     if (!(instance instanceof klass)) {
         throw new Error(`expected instance of ${klass.name}`);
@@ -942,9 +962,28 @@ export class WasmState {
         return ret;
     }
     /**
+    * @param {number} id
+    * @param {number} x
+    * @param {number} y
+    * @param {number} unit_type
+    * @param {number} player_type
+    * @returns {number}
+    */
+    place_piece_with_id(id, x, y, unit_type, player_type) {
+        var ret = wasm.wasmstate_place_piece_with_id(this.ptr, id, x, y, unit_type, player_type);
+        return ret;
+    }
+    /**
     */
     step() {
         wasm.wasmstate_step(this.ptr);
+    }
+    /**
+    * @returns {any}
+    */
+    get_win_condition() {
+        var ret = wasm.wasmstate_get_win_condition(this.ptr);
+        return takeObject(ret);
     }
     /**
     * @returns {any}
@@ -1007,12 +1046,12 @@ async function init(input) {
     }
     const imports = {};
     imports.wbg = {};
+    imports.wbg.__wbg_alert_8d364dfd3f8f0910 = function(arg0, arg1) {
+        alert(getStringFromWasm0(arg0, arg1));
+    };
     imports.wbg.__wbindgen_json_parse = function(arg0, arg1) {
         var ret = JSON.parse(getStringFromWasm0(arg0, arg1));
         return addHeapObject(ret);
-    };
-    imports.wbg.__wbg_alert_8d364dfd3f8f0910 = function(arg0, arg1) {
-        alert(getStringFromWasm0(arg0, arg1));
     };
     imports.wbg.__wbg_instruction_new = function(arg0) {
         var ret = Instruction.__wrap(arg0);

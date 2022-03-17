@@ -16,9 +16,9 @@ import { GameProgress } from "./Utils";
 import PiecePlacementManager from "./PiecePlacementManager";
 import Entity from "./Entity";
 
-const stats = Stats();
-stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
-document.body.appendChild( stats.dom );
+// const stats = Stats();
+// stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+// document.body.appendChild( stats.dom );
 class Game {
     private readonly renderer: WebGLRenderer;
     private readonly cssRenderer: CSS2DRenderer;
@@ -90,7 +90,7 @@ class Game {
                 this.updateGame();
             }
 
-            stats.update();
+            // stats.update();
             this.loop();
         });
     }
