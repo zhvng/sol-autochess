@@ -220,6 +220,7 @@ class ContractController {
 
                 case GameProgress.PlacePieces:
                     await this.fetchGameState();
+                    this.entityManager.updateOpponentHiddenPieces(this.lastGameState.entities.all, this.isInitializer);
                     // check timer , if timer is over reveal2
                     this.timestamp = (this.lastGameState.pieceTimer as BN).toNumber();
                     if (this.timeRemaining() === 0) {
@@ -262,7 +263,6 @@ class ContractController {
                     const winCondition = this.lastGameState.winCondition;
                     if (winCondition !== undefined) {
                         if (winCondition['inProgress'] === undefined) {
-                            console.log(this.lastGameState);
                             this.gameProgress = GameProgress.End;
                             this.updateState();
                             return;
@@ -272,7 +272,6 @@ class ContractController {
                     // crank game a ton
                     for (let i=0; i<5; i++) {
                         const n = 5 + i + Math.floor(this.lastGameState.tick / 20);
-                        console.log(n);
                         const tx = this.program.transaction.crankGame(n, {
                             accounts: {
                                 game: this.gamePDAKey,
@@ -386,7 +385,6 @@ class ContractController {
                 waitingForPlayersDiv.style.padding ='10px';
                 const button = document.createElement('button');
                 button.addEventListener('pointerdown', ()=>{
-                    console.log('asdf')
                     this.cancelGame();
                 });
                 button.innerHTML="cancel";
@@ -554,7 +552,7 @@ class ContractController {
             gameOverDiv.style.padding ='10px';
  
             const gameOverObject = new CSS2DObject(gameOverDiv)
-            gameOverObject.position.setY(5);
+            gameOverObject.position.setY(10);
             this.scene.add(gameOverObject);
         }
     } 

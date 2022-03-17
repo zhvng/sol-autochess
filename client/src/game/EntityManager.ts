@@ -8,6 +8,7 @@ import { GameProgress, GridBoxGeometry, gridCoordinatesToBoardCoordinates, parse
 import { Group } from "@tweenjs/tween.js";
 
 import DraggableEntity from "./DraggableEntity";
+import HiddenEntity from "./HiddenEntity";
 
 
 class EntityManager {
@@ -15,6 +16,7 @@ class EntityManager {
     private readonly models: Map<UnitTypeWasm, GLTF> = new Map();
     private readonly entities: Map<number, Entity> = new Map();
     public readonly draggableEntities: Map<number, DraggableEntity> = new Map();
+    public readonly hiddenEntities: Map<number, HiddenEntity> = new Map();
     // public readonly staticEntities: Map<number, StaticEntity> = new Map();
     private wasmController?: WasmController;
     public loading: boolean = true;
@@ -28,7 +30,7 @@ class EntityManager {
         this.mixers = [];
         const loadingManager = new THREE.LoadingManager();
         loadingManager.onStart = function ( url, itemsLoaded, itemsTotal ) {
-            console.log( 'Started loading file'+'.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+            // console.log( 'Started loading file'+'.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
         };
         
         loadingManager.onLoad = () => {
@@ -37,7 +39,7 @@ class EntityManager {
         };
         
         loadingManager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
-            console.log( 'Loading file: ' + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+            // console.log( 'Loading file: ' + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
         };
         
         loadingManager.onError = function ( url ) {
@@ -76,7 +78,6 @@ class EntityManager {
             gltf.scene.scale.set(4,3,3);
             this.models.set(UnitTypeWasm.Bear, gltf);
         });
-
     }
 
     public attachWasmController(wasmController: WasmController) {
@@ -86,7 +87,6 @@ class EntityManager {
     public updateGame() {
         this.wasmController.step();
         const entities: Array<any> = this.wasmController.getEntities().all;
-        // console.log(entities);
         for (const e of entities) {
             if (this.entities.has(e.id)) {
                 // do actions
@@ -134,22 +134,7 @@ class EntityManager {
         }
     }
 
-    private placeStaticPieces(entity: any) {
-        if (entity && entity.id && entity.position && entity.unitType && entity.owner) {
-            const controller = parseControllerFromAnchor(entity.owner);
-            const unitType = parseUnitTypeFromAnchor(entity.unitType);
-            if (unitType === 'hidden') {
-                // if (this.contractController.isInitializer && controller === ControllerWasm.Opponent
-                //     || !this.contractController.isInitializer && controller === ControllerWasm.Initializer ) {
-
-                // }
-
-            }
-        }
-    }
-
     private placeRevealedPiece(entity: any) {
-        console.log('entity', entity);
         if (entity !== undefined 
             && entity.id !== undefined 
             && entity.position !== undefined 
@@ -175,6 +160,48 @@ class EntityManager {
             throw new Error('incorrect params for entity creation');
         }
     }
+    
+    public updateOpponentHiddenPieces(allEntities: Array<any>, isInitializer: boolean) {
+        const entitiesInPlay: Set<number> = new Set();
+        for (const entity of allEntities) {
+            if (entity !== undefined 
+                && entity.id !== undefined 
+                && entity.position !== undefined 
+                && entity.unitType !== undefined 
+                && entity.owner !== undefined 
+                && entity.health !== undefined
+            ) {
+                const controller = parseControllerFromAnchor(entity.owner);
+                if (isInitializer && controller === ControllerWasm.Opponent 
+                    || !isInitializer && controller === ControllerWasm.Initializer
+                ) { 
+                    const unitType = parseUnitTypeFromAnchor(entity.unitType);
+                    if (unitType === 'hidden') {
+                        const gridX = Math.round((entity.position.x - 50) / 100);
+                        const gridY = Math.round((entity.position.y - 50) / 100);
+                        const position = new Vector2(gridX, gridY);
+                        if (this.hiddenEntities.has(entity.id)) {
+                            this.hiddenEntities.get(entity.id).setGridPosition(position);
+                            entitiesInPlay.add(entity.id);
+                        } else {
+                            this.createHiddenEntity(entity.id, position);
+                            entitiesInPlay.add(entity.id);
+                        }
+                    } else {
+                        throw new Error('not a hidden entity');
+                    }
+                }
+            } else {
+                console.log(entity);
+                throw new Error('incorrect params for entity creation');
+            }
+        }
+        for (const [id, element] of this.hiddenEntities) {
+            if (!entitiesInPlay.has(id)) {
+                element.remove();
+            }
+        }
+    }
 
     private createDraggableEntity(id: number, gridPosition: Vector2, unitType: UnitTypeWasm, controller: ControllerWasm): void {
         const entity = new DraggableEntity(
@@ -187,17 +214,11 @@ class EntityManager {
     }
 
     private createHiddenEntity(id: number, gridPosition: Vector2): void {
-        // const entity = new DraggableEntity(
-        //     this.scene, 
-        //     this.models.get(unitType)!, 
-        //     gridPosition, 
-        //     unitType, 
-        //     controller);
-        // this.draggableEntities.set(id,entity);
+        const entity = new HiddenEntity(this.scene, gridPosition);
+        this.hiddenEntities.set(id, entity);
     }
 
     private createEntity(id: number, boardPosition: Vector2, startingHealth: number, unitType: UnitTypeWasm, controller: ControllerWasm): void {
-        console.log(id);
         if (this.wasmController !== undefined) {
                 this.entities.set(id,
                     new Entity(

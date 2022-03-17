@@ -44,7 +44,6 @@ class Entity {
 
         // load animations
         this.mixer = new AnimationMixer( this.model );
-        console.log(gltf.animations)
         switch (this.unitType) {
             case UnitTypeWasm.Wolf:
                 this.animations.set(Animations.Walk, this.mixer.clipAction(gltf.animations[3]));
