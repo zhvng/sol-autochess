@@ -56,6 +56,7 @@ class WasmController {
 
     public isSimulationOver() {
         const winCondition = this.wasmState.get_win_condition();
+        console.log(winCondition);
         if (winCondition !== 'InProgress') return true; 
         return false;
     }

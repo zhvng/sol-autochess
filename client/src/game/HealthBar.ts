@@ -28,7 +28,8 @@ class HealthBar {
         healthBarDiv.style.height = `${this.healthBarHeightPx}px`;
         healthBarDiv.style.borderStyle = 'solid';
         healthBarDiv.style.borderWidth = '2px';
-        healthBarDiv.style.borderColor = 'black';
+        healthBarDiv.style.borderColor = '#708090';
+        healthBarDiv.style.backgroundColor = 'black'
 
         const healthDiv = document.createElement( 'div' );
         healthBarDiv.appendChild(healthDiv);

@@ -257,7 +257,7 @@ class ContractController {
                     this.gameProgress = GameProgress.InProgress;
                     break;
                 case GameProgress.InProgress:
-                    if (this.entityManager.simulationInProgress === false) this.entityManager.simulationInProgress = true;
+                    if (this.entityManager.simulationStarted === false) this.entityManager.simulationStarted = true;
                     await this.fetchGameState();
                     const winCondition = this.lastGameState.winCondition;
                     if (winCondition !== undefined) {
@@ -478,8 +478,8 @@ class ContractController {
                 this.placePiecesObject.visible = false;
             }
         }
-        console.log(this.entityManager.simulationInProgress)
-        if (!this.entityManager.simulationInProgress && (this.gameProgress === GameProgress.EndTie 
+        console.log(this.entityManager.simulationStarted, this.entityManager.simulationEnded)
+        if (!(this.entityManager.simulationStarted && !this.entityManager.simulationEnded) && (this.gameProgress === GameProgress.EndTie 
             || this.gameProgress === GameProgress.EndWin
             || this.gameProgress === GameProgress.EndLose)) {
 

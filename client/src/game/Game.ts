@@ -128,7 +128,7 @@ class Game {
 
     private updateGame() {
         if (this.wasmController !== undefined && this.contractController !== undefined) {
-            if (this.entityManager.simulationInProgress) {
+            if (this.entityManager.simulationStarted) {
                 this.entityManager.updateGame();
             }
         }

@@ -1,7 +1,7 @@
-import { useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { AnchorWallet, useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { Keypair, SystemProgram, Transaction, TransactionInstruction, TransactionSignature } from '@solana/web3.js';
-import { FC, useCallback } from 'react';
+import { Connection, Keypair, SystemProgram, Transaction, TransactionInstruction, TransactionSignature } from '@solana/web3.js';
+import { FC, useCallback, useEffect, useState } from 'react';
 import useBurnerWalletStore from 'stores/useBurnerWalletStore';
 import { getProgram } from 'utils/program';
 import { notify } from "../utils/notifications";
@@ -9,11 +9,22 @@ import * as anchor from "@project-serum/anchor";
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'next/router';
 import { clearGameInputs, createGameInputs } from 'utils/gameInputs';
+import useUserSOLBalanceStore from 'stores/useUserSOLBalanceStore';
 
 export const CreateGame: FC = () => {
-    const router = useRouter();
     const wallet = useAnchorWallet();
     const { connection } = useConnection();
+
+    const [wagerSize, setWagerSize] = useState<number>(0.1);
+    const balance = useUserSOLBalanceStore((s) => s.balance);
+    const { getUserSOLBalance } = useUserSOLBalanceStore();
+    
+    useEffect(() => {
+      if (wallet !== undefined && wallet.publicKey !== undefined) {
+        console.log('main wallet: ', wallet.publicKey.toBase58())
+        getUserSOLBalance(wallet.publicKey, connection)
+      }
+    }, [wallet, connection, getUserSOLBalance])
 
     const onClick = useCallback(async () => {
         if (!wallet) {
@@ -21,7 +32,13 @@ export const CreateGame: FC = () => {
             console.log('error', `Create Game: Wallet not connected!`);
             return;
         }
-        console.log(wallet);
+
+        if (wagerSize <= 0) {
+            notify({ type: 'error', message: `Wager size cannot be 0` });
+            console.log('error', `Create Game: Invalid wager size!`);
+            return;
+        }
+
         const program = getProgram(wallet, connection);
         const randomGameId = uuidv4().slice(0,16);
         const gamePDA = await anchor.web3.PublicKey.findProgramAddress(
@@ -44,10 +61,11 @@ export const CreateGame: FC = () => {
                 lamports: Math.floor(anchor.web3.LAMPORTS_PER_SOL / 1000), // .001 sol to cover tx fees
             });
 
+            const wagerLamports = wagerSize*anchor.web3.LAMPORTS_PER_SOL;
             signature = await program.rpc.createGame(
                 randomGameId, 
                 burnerWallet.publicKey.toBytes(),
-                new anchor.BN(anchor.web3.LAMPORTS_PER_SOL * .05), 
+                new anchor.BN(wagerLamports), 
                 Uint8Array.from(gameInputs.commitment1), 
                 Uint8Array.from(gameInputs.commitment2), 
                 {
@@ -70,12 +88,25 @@ export const CreateGame: FC = () => {
             clearGameInputs(gamePDAKey, wallet.publicKey);
             return;
         }
-    }, [wallet, notify, connection]);
+    }, [wallet, notify, connection, wagerSize]);
 
     return (
         <div>
+            <div className='border-slate-600 border-2 p-5 rounded-lg'>
+                Wager <input type="number" 
+                value={wagerSize} 
+                onChange={(e)=>{
+                    const value = Math.round( e.target.valueAsNumber * 1e2 ) / 1e2;
+                    if (value >= 0) {
+                        setWagerSize(value)
+                    }
+                }}
+                min="0" 
+                step="0.05" 
+                className='bg-slate-600 w-[75px] h-10 rounded-md p-2'></input> sol
+            {wallet && <p className="text-slate-300 text-xs">balance: {(balance || 0).toLocaleString()} sol</p>}
             <button
-                className="group w-60 m-2 btn animate disabled:animate-none bg-slate-600"
+                className="block mx-auto group w-60 m-2 btn animate disabled:animate-none bg-slate-600"
                 onClick={onClick} disabled={!wallet}
             >
                 <div className="hidden group-disabled:block ">
@@ -85,6 +116,8 @@ export const CreateGame: FC = () => {
                     Create Game 
                 </span>
             </button>
+            </div>
+
             <br></br>
         </div>
     );

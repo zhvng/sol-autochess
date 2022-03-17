@@ -5,20 +5,6 @@ import Link from 'next/link';
 // Wallet
 import { useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
 
-// Components
-import { RequestAirdrop } from '../../components/RequestAirdrop';
-import pkg from '../../../package.json';
-
-// Store
-import useUserSOLBalanceStore from '../../stores/useUserSOLBalanceStore';
-
-// anchor
-import { Connection, PublicKey, clusterApiUrl, Keypair } from '@solana/web3.js';
-import * as anchor from '@project-serum/anchor';
-import {
-  Idl,
-  Program, Provider, web3
-} from '@project-serum/anchor';
 
 import idl from '../../idl/autochess.json';
 import { getProgram } from 'utils/program';
@@ -28,30 +14,6 @@ import { createHash } from 'crypto';
 import GameList from 'components/GameList';
 
 export const HomeView: FC = ({ }) => {
-  const wallet = useAnchorWallet();
-  const { connection } = useConnection();
-  const program = getProgram(wallet, connection);
-
-  const balance = useUserSOLBalanceStore((s) => s.balance);
-  const { getUserSOLBalance } = useUserSOLBalanceStore();
-
-  // Note: Burner wallets are stored in local storage.
-  // They are relatively insecure and you should avoid 
-  // storing substantial funds in them.
-  
-  // Also, clearing browser local storage/cache will render your
-  // burner wallets inaccessible, unless you export your private keys.
-  
-  useEffect(() => {
-    if (wallet !== undefined && wallet.publicKey !== undefined) {
-      console.log('main wallet: ', wallet.publicKey.toBase58())
-      getUserSOLBalance(wallet.publicKey, connection)
-    }
-  }, [wallet, connection, getUserSOLBalance])
-
-  useEffect(() => {
-  }, [])
-
   return (
 
     <div className="md:hero mx-auto p-4">
@@ -94,7 +56,6 @@ export const HomeView: FC = ({ }) => {
         <div className="text-center">
           <CreateGame />
           {/* {wallet.publicKey && <p>Public Key: {wallet.publicKey.toBase58()}</p>} */}
-          {wallet && <p>SOL Balance: {(balance || 0).toLocaleString()}</p>}
         </div>
 
         <GameList/>

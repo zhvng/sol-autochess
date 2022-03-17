@@ -19,7 +19,8 @@ class EntityManager {
     private wasmController?: WasmController;
     public loading: boolean = true;
     public hasPlacedHand: boolean = false;
-    public simulationInProgress: boolean = false;
+    public simulationStarted: boolean = false;
+    public simulationEnded: boolean = false;
 
     constructor(private readonly scene: THREE.Scene,
         private readonly logicUpdatePeriod: number) {
@@ -94,7 +95,7 @@ class EntityManager {
             }
         }
         if (this.wasmController.isSimulationOver()) {
-            this.simulationInProgress = false;
+            this.simulationEnded = true;
         }
     }
 

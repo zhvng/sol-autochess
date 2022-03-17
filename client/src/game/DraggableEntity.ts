@@ -1,4 +1,4 @@
-import { AnimationAction, AnimationClip, AnimationMixer, Group, Intersection, LoopOnce, Object3D, Quaternion, QuaternionKeyframeTrack, Raycaster, Scene, Vector2, Vector3, VectorKeyframeTrack } from "three";
+import { AnimationAction, AnimationClip, AnimationMixer, BoxBufferGeometry, Group, Intersection, LoopOnce, Mesh, MeshStandardMaterial, Object3D, Quaternion, QuaternionKeyframeTrack, Raycaster, Scene, Vector2, Vector3, VectorKeyframeTrack } from "three";
 import { GLTF } from "three/examples/jsm/loaders/GLTFLoader";
 import { ControllerWasm, UnitTypeWasm } from "wasm-client";
 import WasmController from "./WasmController";
@@ -11,6 +11,7 @@ class DraggableEntity {
     private mixer: AnimationMixer;
     private state: UnitState = UnitState.Idle;
     private model: Group;
+    private dragBox: Mesh;
     private unit: Group;
     private lastGridPosition: Vector2;
     constructor(
@@ -25,6 +26,13 @@ class DraggableEntity {
         this.model = cloneModel(gltf.scene) as Group;
         // add to unit
         this.unit.add(this.model);
+        this.dragBox = new Mesh(
+            new BoxBufferGeometry(4, 4, 4),
+            new MeshStandardMaterial({
+                visible: false,
+            })
+        );
+        this.unit.add(this.dragBox)
         this.scene.add(this.unit);
 
         const convertedPosition = boardCoordinatesTo3D(gridCoordinatesToBoardCoordinates(this.gridPosition));
@@ -68,7 +76,7 @@ class DraggableEntity {
     }
 
     public getRaycasterIntersection(raycaster: Raycaster): Intersection[] {
-        return raycaster.intersectObject(this.model, true);
+        return raycaster.intersectObject(this.dragBox, false);
     }
 
     public getGridPosition(): Vector2 | undefined {
