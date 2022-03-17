@@ -21,6 +21,9 @@ export const AppBar: FC = props => {
             <Link href="/">
               <a className="btn btn-ghost btn-sm rounded-btn">Play</a>
             </Link>
+            <Link href="/rules">
+              <a className="btn btn-ghost btn-sm rounded-btn">Rules</a>
+            </Link>
             <Link href="/units">
               <a className="btn btn-ghost btn-sm rounded-btn">Units</a>
             </Link>

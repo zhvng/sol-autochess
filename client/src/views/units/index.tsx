@@ -14,8 +14,6 @@ export const UnitsView: FC = ({ }) => {
           <br></br>
           <hr></hr>
           <br></br>
-          <p>Here's a list of the available units and their stats.</p>
-          <br></br>
           <ol>
             <li className="text-amber-100">Wolf</li>
               <ul className="inline-block text-left">
@@ -45,7 +43,10 @@ export const UnitsView: FC = ({ }) => {
           <br></br>
           <hr></hr>
           <br></br>
-          <p>The game board is 8 squares x 8 squares. Movement speed is in squares/second, attack speed is in attacks/second, range is in squares.</p>
+          <p>the game board is 8 x 8 squares</p>
+          <p>movement speed is in squares/second</p>
+          <p>attack speed is in attacks/second</p>
+          <p>range is in squares</p>
           <br></br>
           <p>More units, traits and abilities coming soon.</p>
 
