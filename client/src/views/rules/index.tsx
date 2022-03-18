@@ -2,9 +2,9 @@
 import { FC } from "react";
 import { SignMessage } from '../../components/SignMessage';
 import { SendTransaction } from '../../components/SendTransaction';
+import { useRouter } from "next/router";
 
 export const RulesView: FC = ({ }) => {
-
   return (
     <div className="md:hero mx-auto p-4">
       <div className="md:hero-content flex flex-col">
@@ -13,12 +13,12 @@ export const RulesView: FC = ({ }) => {
             how to play
           </h1>
           <br></br>
-          <ul className="list-decimal inline-block text-left">
-            <li>Create or join a game with your preferred wager amount</li>
-            <li>At the start of the game, you draw 5 random units</li>
-            <li>Place any 3 of them on your side of the board</li>
-            <li>When the timer expires, the units will start fighting</li>
-            <li>Player with units left standing wins the wagered sol</li>
+          <ul className="inline-block text-left">
+            <li>1. Create or join a game with your preferred wager amount</li>
+            <li>2. At the start of the game, you draw 5 random units</li>
+            <li>3. Place any 3 of them on your side of the board</li>
+            <li>4. When the timer expires, the units will start fighting</li>
+            <li>5. Player with units left standing wins the wagered sol</li>
           </ul>
           <br></br>
           <br></br>

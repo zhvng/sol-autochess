@@ -12,8 +12,6 @@ export const UnitsView: FC = ({ }) => {
             units
           </h1>
           <br></br>
-          <hr></hr>
-          <br></br>
           <ol>
             <li className="text-amber-100">Wolf</li>
               <ul className="inline-block text-left">
@@ -49,6 +47,14 @@ export const UnitsView: FC = ({ }) => {
           <p>range is in squares</p>
           <br></br>
           <p>More units, traits and abilities coming soon.</p>
+          <br></br>
+          <hr></hr>
+          <br></br>
+          <div className="text-xs">
+            <p>The 3D animal models used in the project were made by Quaternius and Nyilonelycompany.</p>
+            <p>Support Quaternius on patreon: <a href='https://www.patreon.com/quaternius'>https://www.patreon.com/quaternius</a></p>
+            <p>Support Nyilonelycompany on sketchfab: <a href='https://sketchfab.com/Nyilonelycompany'>https://sketchfab.com/Nyilonelycompany</a></p>
+          </div>
 
         </h4> 
       </div>

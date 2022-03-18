@@ -92,7 +92,7 @@ export const CreateGame: FC = () => {
 
     return (
         <div>
-            <div className='border-slate-600 border-2 p-5 rounded-lg'>
+            <div className={`border-slate-600 border-2 p-3 rounded-lg ${!wallet && 'text-slate-600'}`}>
                 Wager <input type="number" 
                 value={wagerSize} 
                 onChange={(e)=>{
@@ -106,7 +106,7 @@ export const CreateGame: FC = () => {
                 className='bg-slate-600 w-[75px] h-10 rounded-md p-2'></input> sol
             {wallet && <p className="text-slate-300 text-xs">balance: {(balance || 0).toLocaleString()} sol</p>}
             <button
-                className="block mx-auto group w-60 m-2 btn animate disabled:animate-none bg-slate-600"
+                className="block mx-auto group w-60 mt-2 btn animate disabled:animate-none bg-slate-600"
                 onClick={onClick} disabled={!wallet}
             >
                 <div className="hidden group-disabled:block ">
