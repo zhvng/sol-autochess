@@ -464,7 +464,7 @@ class ContractController {
                 const placePiecesDiv = document.createElement('div');
                 placePiecesDiv.style.position = 'absolute';
                 placePiecesDiv.innerHTML=(`
-                    <div style="font-size:32px;color:white;">place pieces</div>
+                    <div style="font-size:32px;color:white;">place (3) pieces</div>
                 `)
                 placePiecesDiv.style.textAlign ='center';
                 placePiecesDiv.style.width ='100%';
