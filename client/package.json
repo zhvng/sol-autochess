@@ -4,8 +4,9 @@
   "license": "MIT",
   "private": false,
   "scripts": {
+    "build-wasm": "cd wasm-client && wasm-pack build --target web -d ../pkg && sed -i '' 's/export function init/export function initWasm/g' ../pkg/wasm_client.js ",
     "dev": "NODE_OPTIONS=--max_old_space_size=4096 next dev",
-    "build": "NODE_OPTIONS=--max_old_space_size=4096 next build",
+    "build": "npm run build-wasm && NODE_OPTIONS=--max_old_space_size=4096 next build",
     "start": "NODE_OPTIONS=--max_old_space_size=4096 next start",
     "lint": "next lint"
   },
