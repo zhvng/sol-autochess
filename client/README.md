@@ -12,7 +12,7 @@ yarn install
 ## Compile WebAssembly
 The game uses a Wasm version of the contract to simulate the battle on the frontend.
 
-To compile the contract, run `npm run build-wasm`. This will create a `pkg/` directory that contains the auto-generated wasm-bindgen code for the autochess contract. The code that interfaces with the wasm is located in the `wasm-client` directory.
+To compile the wasm client, run `npm run build-wasm`. This will create a `wasm-client/pkg` directory with the auto-generated wasm-bindgen code that lets us simulate the autochess contract.
 
 ## Run
 
