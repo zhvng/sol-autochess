@@ -104,14 +104,12 @@ class ContractController {
     private async fetchGameState() {
         const account = await this.program.account.game.fetch(this.gamePDAKey);
         this.lastGameState = account;
-        console.log(account);
         return account;
     }
 
     private async initState() {
         try {
             const account = await this.fetchGameState();
-            console.log(account);
             this.isInitializer = true;
             if ((account.initializer as PublicKey).toBase58() === this.program.provider.wallet.publicKey.toBase58()) {
                 this.isInitializer = true;
@@ -480,7 +478,6 @@ class ContractController {
                 this.placePiecesObject.visible = false;
             }
         }
-        console.log(this.entityManager.simulationStarted, this.entityManager.simulationEnded)
         if (!(this.entityManager.simulationStarted && !this.entityManager.simulationEnded) && (this.gameProgress === GameProgress.EndTie 
             || this.gameProgress === GameProgress.EndWin
             || this.gameProgress === GameProgress.EndLose)) {

@@ -100,24 +100,6 @@ class Game {
         this.entityManager.attachWasmController(this.wasmController);
         this.contractController = await ContractController.createContractController(this.scene, this.camera, gamePDAKey, program, gameInputs, this.entityManager);
         this.piecePlacementManager.attachNewContract(this.contractController);
-
-        // setTimeout(()=>{
-        //     // this.placePiece(7, 2, UnitTypeWasm.Wolf, ControllerWasm.Initializer);
-        //     // this.placePiece(3, 2, UnitTypeWasm.Bear, ControllerWasm.Initializer);
-        //     // this.placePiece(6, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
-        //     // this.placePiece(0, 7, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
-        //     // this.placePiece(0, 6, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
-        //     // this.placePiece(0, 5, UnitTypeWasm.Bear, ControllerWasm.Opponent);
-
-        //     this.placePiece(2, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
-        //     this.placePiece(4, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
-        //     this.placePiece(3, 2, UnitTypeWasm.Bull, ControllerWasm.Initializer);
-        //     this.placePiece(4, 6, UnitTypeWasm.Bull, ControllerWasm.Opponent);
-        //     this.placePiece(3, 5, UnitTypeWasm.Bear, ControllerWasm.Opponent);
-        //     this.placePiece(4, 7, UnitTypeWasm.Wolf, ControllerWasm.Opponent);
-
-        // }, 4000);
-        // console.log(this.gameController.getEntities());
     }
 
     private update(timeElapsed: number): void {

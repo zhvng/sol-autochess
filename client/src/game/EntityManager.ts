@@ -101,7 +101,6 @@ class EntityManager {
 
     public drawAndPlaceHand(random1: Uint8Array, random2: Uint8Array, isInitializer: boolean) {
         const hand: Array<UnitTypeWasm> = this.wasmController.drawHand(random1, random2);
-        console.log(hand);
         if (this.hasPlacedHand === false){
             for (const [i, unitType] of hand.entries()) {
                 let position: Vector2;
