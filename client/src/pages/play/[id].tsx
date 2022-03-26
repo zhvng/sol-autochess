@@ -18,12 +18,12 @@ const Play = () => {
     const { connection } = useConnection();
 
     const { id } = router.query
-    console.log('id: ', id);
     const mountRef = useRef(null);
     useEffect(() => {
       (async () => {
         try {
           if (id !== undefined && wallet !== undefined) {
+            console.log('id: ', id);
             const gamePDAKey = new PublicKey(id);
             const program = getProgram(wallet, connection);
 
