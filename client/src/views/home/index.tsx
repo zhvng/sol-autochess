@@ -1,16 +1,6 @@
 // Next, React
-import { FC, useEffect, useState } from 'react';
-import Link from 'next/link';
-
-// Wallet
-import { useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
-
-
-import idl from '../../idl/autochess.json';
-import { getProgram } from 'utils/program';
-import useGameListStore from 'stores/useGameListStore';
+import { FC } from 'react';
 import { CreateGame } from 'components/CreateGame';
-import { createHash } from 'crypto';
 import GameList from 'components/GameList';
 import { useRouter } from 'next/router';
 

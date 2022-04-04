@@ -97,6 +97,7 @@ class ContractController {
     private timeRemaining() {
         if (this.timestamp === undefined) return undefined;
         const currentTimestamp = Math.floor(Date.now() / 1000);
+        console.log(currentTimestamp, this.timestamp);
         return Math.max(this.timestamp - currentTimestamp, 0);
     }
 
@@ -222,6 +223,7 @@ class ContractController {
                     await this.fetchGameState();
                     this.entityManager.updateOpponentHiddenPieces(this.lastGameState.entities.all, this.isInitializer);
                     // check timer , if timer is over reveal2
+                    console.log(this.lastGameState);
                     this.timestamp = (this.lastGameState.pieceTimer as BN).toNumber();
                     if (this.timeRemaining() === 0) {
                         this.gameProgress = GameProgress.Reveal2;
@@ -273,7 +275,7 @@ class ContractController {
                     notify({ type: 'info', message: 'simulating game...' });
                     // crank game a ton
                     for (let i=0; i<5; i++) {
-                        const n = 5 + i + Math.floor(this.lastGameState.tick / 20);
+                        const n = 4 + i + Math.floor(this.lastGameState.tick / 20);
                         const tx = this.program.transaction.crankGame(n, {
                             accounts: {
                                 game: this.gamePDAKey,

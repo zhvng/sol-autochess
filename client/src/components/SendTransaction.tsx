@@ -1,10 +1,11 @@
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { Keypair, SystemProgram, Transaction, TransactionSignature } from '@solana/web3.js';
+import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
 import { FC, useCallback } from 'react';
 import { notify } from "../utils/notifications";
 
 export const SendTransaction: FC = () => {
-    const { connection } = useConnection();
+    const { connection } = useConnectionWrapper();
     const { publicKey, sendTransaction } = useWallet();
 
     const onClick = useCallback(async () => {
