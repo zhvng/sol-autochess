@@ -1,7 +1,7 @@
 use anchor_lang::{prelude::*};
 use std::collections::BTreeMap;
 
-use super::utils::Location;
+use super::{utils::Location, entities::{Entity, Entities}};
 
 pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
     let mut units = BTreeMap::new();
@@ -14,6 +14,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
             attack_range: 125,
             attack_damage: 15,
             starting_health: 100,
+            crit: 50, // out of 255
         },
     );
     units.insert(
@@ -24,6 +25,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
             attack_range: 150,
             attack_damage: 10,
             starting_health: 250,
+            crit: 20, // out of 255
         },
     );
     units.insert(
@@ -34,6 +36,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
             attack_range: 150,
             attack_damage: 25,
             starting_health: 150,
+            crit: 20, // out of 255
         },
     );
     units
@@ -56,9 +59,6 @@ pub enum AttackType {
     Melee,
     Ranged{speed: u16},
 }
-pub fn add(a: u64, b: u64) -> u64 {
-    a + b
-}
 
 pub struct Unit {
     pub movement_speed: u16,
@@ -66,16 +66,11 @@ pub struct Unit {
     pub attack_range: u16,
     pub attack_damage: u16,
     pub starting_health: u16,
+    pub crit: u16,
 }
 
-pub trait UnitTrait {
-    fn move_unit(&self, target: Location) -> bool;
-    fn initiate_attack(&self, target: u16) -> bool;
-    fn step(&self) -> u16;
-}
-
-pub struct UnitStats {
-    movement_speed: u16,
-    attack_duration: u16,
-    attack_range: u16,
-}
+// pub struct AttackModifierArgs<'a> {
+//     pub unit: &'a Unit<'a>,
+//     pub entity: &'a Entity, 
+//     pub entities: &'a Entities,
+// }

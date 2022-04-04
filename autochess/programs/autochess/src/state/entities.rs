@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use anchor_lang::{prelude::*, solana_program::log::sol_log_compute_units};
-use super::{utils::Location, units::{UnitType, Unit, self}};
+use super::{utils::Location, actions::{Action, Actions}, units::{UnitType, Unit, self}};
 
 use serde;
 
@@ -165,7 +165,6 @@ impl Entities {
         entities
     }
 }
-
 #[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Entity {
     pub id: u16,
@@ -184,7 +183,7 @@ pub struct Entity {
     pub state: EntityState,
 }
 impl Entity {
-    pub fn walk_or_aa(&mut self, all_entities: &Entities, unit_map: &BTreeMap<UnitType, Unit>) {
+    pub fn walk_or_aa(&self, actions: &mut Actions, all_entities: &Entities, unit_map: &BTreeMap<UnitType, Unit>) {
         let enemy = if self.owner == Controller::Initializer {
             Controller::Opponent
         } else {
@@ -194,7 +193,7 @@ impl Entity {
             Some(id) => {
                 let entity = all_entities.get_by_id(id).unwrap();
                 if entity.state == EntityState::Dead {
-                    self.target = None;
+                    actions.add(self.id, Action::Target { target_id: None });
                     None
                 } else {
                     Some(EntityResult {
@@ -216,20 +215,20 @@ impl Entity {
 
                 if result.distance <= aa_range {
                     // ATTACK
-                    msg!("{:?} {:?}", self.owner, result.entity.owner);
-                    self.state = EntityState::Attack{progress: 0, attack_on: attack_duration, target_id:result.entity.id};
+                    actions.add(self.id, Action::EntityStateChange { state: EntityState::Attack{progress: 0, attack_on: attack_duration, target_id:result.entity.id}});
                 } else {
-                    let target = self.position.move_towards(&result.entity.position, result.distance, movement_speed);
-                    self.state = EntityState::Moving{to: target};
+                    let move_to = self.position.move_towards(&result.entity.position, result.distance, movement_speed);
+                    actions.add(self.id, Action::EntityStateChange { state: EntityState::Moving{to: move_to} });
+                    actions.add(self.id, Action::Move{to: move_to});
                 }
 
                 if self.target == None {
-                    self.target = Some(result.entity.id);
+                    actions.add(self.id, Action::Target { target_id: Some(result.entity.id) });
                 }
             },
             None => {
                 // No target for this turn, do nothing
-                self.state = EntityState::Idle;
+                actions.add(self.id, Action::EntityStateChange { state: EntityState::Idle });
             }
         }
         sol_log_compute_units();

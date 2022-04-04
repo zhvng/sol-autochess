@@ -1,6 +1,3 @@
-[programs.localnet]
-autochess = "AwrQQpL4QssWCUCjqrmZ1uySFGBR32jhhhSwm7A57tcS"
-
 [programs.devnet]
 autochess = "AwrQQpL4QssWCUCjqrmZ1uySFGBR32jhhhSwm7A57tcS"
 
@@ -8,7 +5,7 @@ autochess = "AwrQQpL4QssWCUCjqrmZ1uySFGBR32jhhhSwm7A57tcS"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "/Users/allenzhang/.config/solana/id.json"
 
 [scripts]

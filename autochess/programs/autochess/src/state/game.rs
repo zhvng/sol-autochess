@@ -4,7 +4,7 @@ use anchor_lang::{solana_program::{hash::{Hash, hash, extend_and_hash}, loader_i
 
 use crate::state::entities;
 
-use super::{utils, entities::{Entity, Entities}, units};
+use super::{utils, entities::{Entity, Entities, EntityState}, units, actions::{Actions, Action}};
 
 use serde;
 
@@ -50,15 +50,6 @@ pub struct Game {
 
     pub tick: u32,
     pub random_calls: u16,
-}
-
-/// When a unit needs to modify another unit, add an Apply into a vector and modify at the end of the game loop
-/// This removes the need for two mutable borrows
-enum Apply {
-    Damage {
-        amount: u16,
-        target_id: u16,
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, AnchorSerialize, AnchorDeserialize, Copy, serde::Serialize, serde::Deserialize)]
@@ -319,26 +310,29 @@ impl Game {
     /// Run through one game step (every entity moves)
     pub fn step(&mut self, unit_map: &BTreeMap<units::UnitType, units::Unit>) {
 
-        let mut actions: Vec<Apply>= Vec::new();
+        let mut actions: Actions = Actions::new();
         // move and change entities themselves
         let all_entities = &self.entities.clone();
-        for entity in &mut self.entities.all {
+        for entity in &self.entities.all {
             if entity.owner == entities::Controller::Initializer || entity.owner == entities::Controller::Opponent {
                 match entity.state {
                     entities::EntityState::Idle => {
-                        entity.walk_or_aa(all_entities, unit_map);
+                        entity.walk_or_aa(&mut actions, all_entities, unit_map);
                     },
                     entities::EntityState::Moving{to} => {
-                        entity.position = to;
-                        entity.walk_or_aa(all_entities, unit_map);
+                        entity.walk_or_aa(&mut actions, all_entities, unit_map);
                     },
-                    entities::EntityState::Attack{ref mut progress, attack_on, target_id} => {
-                        *progress +=1;
-                        if *progress == attack_on {
+                    entities::EntityState::Attack{progress, attack_on, target_id} => {
+                        let new_progress = progress + 1;
+                        if new_progress == attack_on {
                             // atack
                             let unit = unit_map.get(&entity.unit_type).unwrap();
-                            actions.push(Apply::Damage{amount: unit.attack_damage, target_id});
-                            entity.state = entities::EntityState::Idle;
+                            actions.add(target_id, Action::Damage{amount: unit.attack_damage});
+                            actions.add(entity.id, Action::EntityStateChange { state: EntityState::Idle });
+                        } else {
+                            actions.add(entity.id, Action::EntityStateChange { 
+                                state: EntityState::Attack { progress: new_progress, attack_on, target_id }
+                            });
                         }
                     },
                     _other=>{}
@@ -347,26 +341,37 @@ impl Game {
         }
 
         // apply inflicted effects
-        for action in actions {
-            match action {
-                Apply::Damage{amount, target_id} => {
-                    match self.entities.get_by_id_mut(target_id) {
-                        Some(u) => {
-                            let new_health_option =  u.health.checked_sub(amount);
-                            match new_health_option {
-                                Some (new_health) => {
-                                    u.health = new_health;
+        for entity in &mut self.entities.all {
+            match actions.get_actions_by_id(&entity.id) {
+                Some(actions_for_id) => {
+                    for action in actions_for_id {
+                        match *action {
+                            Action::Damage{amount} => {
+                                let new_health_option =  entity.health.checked_sub(amount);
+                                match new_health_option {
+                                    Some (new_health) => {
+                                        entity.health = new_health;
+                                    }
+                                    None => {
+                                        entity.health = 0;
+                                        entity.state = entities::EntityState::Dead;
+                                        entity.owner = entities::Controller::Graveyard;
+                                    }
                                 }
-                                None => {
-                                    u.health = 0;
-                                    u.state = entities::EntityState::Dead;
-                                    u.owner = entities::Controller::Graveyard;
-                                }
+                            },
+                            Action::EntityStateChange { state } => {
+                                entity.state = state;
+                            },
+                            Action::Move { to } => {
+                                entity.position = to;
+                            },
+                            Action::Target { target_id } => {
+                                entity.target = target_id;
                             }
-                        },
-                        None=>{}
+                        }
                     }
-                }
+                },
+                None => {}
             }
         }
         self.tick = self.tick + 1;
