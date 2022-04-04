@@ -1,4 +1,4 @@
-import { useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useAnchorWallet, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Keypair, SystemProgram, Transaction, TransactionInstruction, TransactionSignature } from '@solana/web3.js';
 import { FC, useCallback } from 'react';
@@ -8,10 +8,11 @@ import { notify } from "../utils/notifications";
 import * as anchor from "@project-serum/anchor";
 import { v4 as uuidv4 } from 'uuid';
 import { clearGameInputs, createGameInputs } from 'utils/gameInputs';
+import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
 
 export const JoinGame = ({gamePDAKey}) => {
     const wallet = useAnchorWallet();
-    const { connection } = useConnection();
+    const { connection } = useConnectionWrapper();
 
     const onClick = useCallback(async () => {
         if (!wallet) {

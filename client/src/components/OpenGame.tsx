@@ -1,4 +1,4 @@
-import { useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useAnchorWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Keypair, SystemProgram, Transaction, TransactionInstruction, TransactionSignature } from '@solana/web3.js';
 import { FC, useCallback } from 'react';

@@ -5,9 +5,10 @@
   "private": false,
   "scripts": {
     "build-wasm": "cd wasm-client && wasm-pack build --target web -d ./pkg && sed -i '' 's/export function init/export function initWasm/g' ./pkg/wasm_client.js ",
-    "dev": "NODE_OPTIONS=--max_old_space_size=4096 next dev",
-    "build": "npm run build-wasm && NODE_OPTIONS=--max_old_space_size=4096 next build",
-    "start": "NODE_OPTIONS=--max_old_space_size=4096 next start",
+    "local": "NEXT_PUBLIC_CLIENT_MODE=local NODE_OPTIONS=--max_old_space_size=4096 next dev",
+    "dev": "NEXT_PUBLIC_CLIENT_MODE=dev NODE_OPTIONS=--max_old_space_size=4096 next dev",
+    "build": "NEXT_PUBLIC_CLIENT_MODE=production && npm run build-wasm && NODE_OPTIONS=--max_old_space_size=4096 next build",
+    "start": "NEXT_PUBLIC_CLIENT_MODE=production NODE_OPTIONS=--max_old_space_size=4096 next start",
     "lint": "next lint"
   },
   "dependencies": {

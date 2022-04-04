@@ -1,4 +1,4 @@
-import { AnchorWallet, useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { AnchorWallet, useAnchorWallet, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Connection, Keypair, SystemProgram, Transaction, TransactionInstruction, TransactionSignature } from '@solana/web3.js';
 import { FC, useCallback, useEffect, useState } from 'react';
@@ -10,10 +10,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'next/router';
 import { clearGameInputs, createGameInputs } from 'utils/gameInputs';
 import useUserSOLBalanceStore from 'stores/useUserSOLBalanceStore';
+import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
 
 export const CreateGame: FC = () => {
     const wallet = useAnchorWallet();
-    const { connection } = useConnection();
+    const { connection } = useConnectionWrapper();
 
     const [wagerSize, setWagerSize] = useState<number>(0.1);
     const balance = useUserSOLBalanceStore((s) => s.balance);

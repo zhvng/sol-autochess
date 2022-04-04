@@ -6,16 +6,17 @@ import { useRouter } from 'next/router'
 import init from 'wasm-client';
 import { PublicKey } from '@solana/web3.js';
 import { notify } from 'utils/notifications';
-import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
+import { useAnchorWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { getProgram } from 'utils/program';
 import { getGameInputs } from 'utils/gameInputs';
+import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
 
 
 const Play = () => {
     const router = useRouter()
     const wallet = useAnchorWallet();
-    const { connection } = useConnection();
+    const { connection } = useConnectionWrapper();
 
     const { id } = router.query
     const mountRef = useRef(null);

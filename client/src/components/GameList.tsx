@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
+import { useAnchorWallet } from '@solana/wallet-adapter-react';
 import { getExplorerUrl } from '../utils/explorer'
 import useGameListStore from 'stores/useGameListStore';
 import { getProgram } from 'utils/program';
@@ -9,17 +9,20 @@ import { PublicKey } from '@solana/web3.js';
 import { JoinGame } from './JoinGame';
 import { CancelGame } from './CancelGame';
 import { OpenGame } from './OpenGame';
+import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
 
 const GameList = () => {
   const wallet = useAnchorWallet();
-  const { connection } = useConnection();
+  const { connection } = useConnectionWrapper();
   
   const { gameList, getGameList } = useGameListStore();
 
   useEffect(()=>{
-    const program = getProgram(wallet, connection);
-    getGameList(program);
-  }, []);
+    if (connection !== undefined) {
+      const program = getProgram(wallet, connection);
+      getGameList(program);
+    }
+  }, [connection, wallet]);
 
   if (gameList === undefined || gameList !== undefined && gameList.length === 0) {
     return (
