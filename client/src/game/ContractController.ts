@@ -20,6 +20,7 @@ class ContractController {
     private waitingForPlayersObject?: CSS2DObject;
     private waitingForRevealObject?: CSS2DObject;
     private placePiecesObject?: CSS2DObject;
+    private gameOverObject?: CSS2DObject;
     private timestamp?: number;
     private timer: CSS2DObject;
     private _isInitializer: boolean = true;
@@ -97,7 +98,6 @@ class ContractController {
     private timeRemaining() {
         if (this.timestamp === undefined) return undefined;
         const currentTimestamp = Math.floor(Date.now() / 1000);
-        console.log(currentTimestamp, this.timestamp);
         return Math.max(this.timestamp - currentTimestamp, 0);
     }
 
@@ -250,14 +250,18 @@ class ContractController {
                     if (this.lastGameState.state === 3) {
                         this.gameProgress = GameProgress.PopulateBoard;
                         this.clearTimer();
-                        setTimeout(()=>this.updateState(),200);
+                        this.updateState();
                         return;
                     }
                     this.setInactivityTimer();
                     break;
                 case GameProgress.PopulateBoard:
                     if (this.entityManager.loading === false ) {
-                        this.entityManager.populateRevealedBoard(this.lastGameState.entities.all);
+                        this.entityManager.populateRevealedBoard(
+                            this.lastGameState.entities.all, 
+                            Uint8Array.from(this.lastGameState.reveal1), 
+                            Uint8Array.from(this.lastGameState.reveal2),
+                        );
                         this.gameProgress = GameProgress.InProgress;
                     }
                     break;
@@ -480,7 +484,7 @@ class ContractController {
                 this.placePiecesObject.visible = false;
             }
         }
-        if (!(this.entityManager.simulationStarted && !this.entityManager.simulationEnded) && (this.gameProgress === GameProgress.EndTie 
+        if (this.gameOverObject === undefined && !(this.entityManager.simulationStarted && !this.entityManager.simulationEnded) && (this.gameProgress === GameProgress.EndTie 
             || this.gameProgress === GameProgress.EndWin
             || this.gameProgress === GameProgress.EndLose)) {
 
@@ -551,11 +555,12 @@ class ContractController {
 
             gameOverDiv.style.textAlign ='center';
             gameOverDiv.style.width ='100%';
-            gameOverDiv.style.backgroundColor ='white';
+            gameOverDiv.style.backgroundColor ='rgba(255,255,255,.6)';
             gameOverDiv.style.padding ='10px';
  
             const gameOverObject = new CSS2DObject(gameOverDiv)
             gameOverObject.position.setY(10);
+            this.gameOverObject = gameOverObject;
             this.scene.add(gameOverObject);
         }
     } 
@@ -588,6 +593,7 @@ class ContractController {
     }
 
     private async getBurnerBalance(): Promise<number> {
+        console.log('getting balance', this.burnerWallet.publicKey.toBase58());
         const balance = await this.program.provider.connection.getBalance(
             this.burnerWallet.publicKey,
             'confirmed'
