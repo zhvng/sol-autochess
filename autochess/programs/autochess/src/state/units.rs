@@ -14,7 +14,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
             attack_range: 125,
             attack_damage: 15,
             starting_health: 100,
-            crit: 50, // out of 255
+            crit_chance: 50, // out of 255
         },
     );
     units.insert(
@@ -25,7 +25,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
             attack_range: 150,
             attack_damage: 10,
             starting_health: 250,
-            crit: 20, // out of 255
+            crit_chance: 20, // out of 255
         },
     );
     units.insert(
@@ -36,7 +36,7 @@ pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
             attack_range: 150,
             attack_damage: 25,
             starting_health: 150,
-            crit: 20, // out of 255
+            crit_chance: 20, // out of 255
         },
     );
     units
@@ -66,7 +66,7 @@ pub struct Unit {
     pub attack_range: u16,
     pub attack_damage: u16,
     pub starting_health: u16,
-    pub crit: u16,
+    pub crit_chance: u8,
 }
 
 // pub struct AttackModifierArgs<'a> {

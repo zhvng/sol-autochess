@@ -300,20 +300,20 @@ impl Game {
         if self.random_calls >= 32 {
             self.reveal_2 = Some(generate_new_randomness(&self.reveal_2.unwrap()));
             self.random_calls = 0;
-        } 
+        }
         let randomness = self.reveal_2.unwrap();
-        let random_index = (self.random_calls)as usize;
+        let index = (self.random_calls)as usize;
         self.random_calls = self.random_calls + 1;
-        return randomness[random_index];
+        return randomness[index];
     }
 
     /// Run through one game step (every entity moves)
     pub fn step(&mut self, unit_map: &BTreeMap<units::UnitType, units::Unit>) {
 
         let mut actions: Actions = Actions::new();
-        // move and change entities themselves
+        // loop through entities and queue actions
         let all_entities = &self.entities.clone();
-        for entity in &self.entities.all {
+        for entity in &self.entities.all.clone() {
             if entity.owner == entities::Controller::Initializer || entity.owner == entities::Controller::Opponent {
                 match entity.state {
                     entities::EntityState::Idle => {
@@ -325,9 +325,16 @@ impl Game {
                     entities::EntityState::Attack{progress, attack_on, target_id} => {
                         let new_progress = progress + 1;
                         if new_progress == attack_on {
-                            // atack
                             let unit = unit_map.get(&entity.unit_type).unwrap();
-                            actions.add(target_id, Action::Damage{amount: unit.attack_damage});
+
+                            let mut attack_damage = unit.attack_damage;
+                            // calculate crit
+                            let random = self.get_random_u8();
+                            if random < unit.crit_chance {
+                                attack_damage = attack_damage * 2;
+                            }
+                            // attack
+                            actions.add(target_id, Action::Damage{amount: attack_damage});
                             actions.add(entity.id, Action::EntityStateChange { state: EntityState::Idle });
                         } else {
                             actions.add(entity.id, Action::EntityStateChange { 
@@ -338,9 +345,9 @@ impl Game {
                     _other=>{}
                 }
             }
-        }
+        };
 
-        // apply inflicted effects
+        // apply actions
         for entity in &mut self.entities.all {
             match actions.get_actions_by_id(&entity.id) {
                 Some(actions_for_id) => {
@@ -348,19 +355,24 @@ impl Game {
                         match *action {
                             Action::Damage{amount} => {
                                 let new_health_option =  entity.health.checked_sub(amount);
-                                match new_health_option {
-                                    Some (new_health) => {
-                                        entity.health = new_health;
-                                    }
-                                    None => {
+                                if let Some(new_health) = new_health_option{
+                                    if new_health == 0 {
                                         entity.health = 0;
                                         entity.state = entities::EntityState::Dead;
                                         entity.owner = entities::Controller::Graveyard;
+                                    } else {
+                                        entity.health = new_health;
                                     }
+                                } else {
+                                    entity.health = 0;
+                                    entity.state = entities::EntityState::Dead;
+                                    entity.owner = entities::Controller::Graveyard;
                                 }
                             },
                             Action::EntityStateChange { state } => {
-                                entity.state = state;
+                                if entity.state != EntityState::Dead {
+                                    entity.state = state;
+                                }
                             },
                             Action::Move { to } => {
                                 entity.position = to;
