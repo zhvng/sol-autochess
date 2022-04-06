@@ -132,10 +132,7 @@ impl Entities {
         let mut closest_enemy: Option<EntityResult> = None;
         for other in &self.all {
             if other.owner == owner {
-                msg!("distance");
-                sol_log_compute_units();
                 let distance = position.distance(&other.position);
-                sol_log_compute_units();
                 if distance < min_distance && distance <= range {
                     min_distance = distance;
                     closest_enemy = Some(EntityResult{
