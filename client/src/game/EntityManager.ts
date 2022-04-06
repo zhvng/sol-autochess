@@ -122,7 +122,9 @@ class EntityManager {
     /**
      * Populate a revealed board retreived from the contract with anchor
      */
-    public populateRevealedBoard(allEntities: Array<any>) {
+    public populateRevealedBoard(allEntities: Array<any>, reveal1: Uint8Array, reveal2:Uint8Array) {
+        this.wasmController.setReveals(reveal1, reveal2);
+
         // remove draggables
         for (const draggableEntity of this.draggableEntities.values()) {
             draggableEntity.remove();

@@ -40,6 +40,12 @@ class WasmController {
         return hand;
     }
 
+    public setReveals(reveal1: Uint8Array, reveal2: Uint8Array) {
+        this.wasmState.set_reveals(reveal1, reveal2);
+
+        console.log(this.wasmState.get_game());
+    }
+
     public placePiece(x: number, y: number, unitType: UnitTypeWasm, controller: ControllerWasm) {
         console.log('placing piece')
         return this.wasmState.place_piece(x, y, unitType, controller);

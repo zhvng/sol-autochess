@@ -13,16 +13,9 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
 extern {
-    fn alert(s: &str);
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
 }
-
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, wasm-client!");
-}
-
 
 #[wasm_bindgen]
 pub struct WasmState {
@@ -100,6 +93,11 @@ impl WasmState {
     pub fn get_win_condition(&mut self) -> JsValue {
         self.game.update_win_condition();
         JsValue::from_serde(&self.game.win_condition).unwrap()
+    }
+
+    pub fn set_reveals(&mut self, reveal_1: &[u8], reveal_2: &[u8]) {
+        self.game.reveal_1 = Some(reveal_1.try_into().expect("slice with incorrect length"));
+        self.game.reveal_2 = Some(reveal_2.try_into().expect("slice with incorrect length"));
     }
 
     pub fn get_game(&mut self) -> JsValue {
