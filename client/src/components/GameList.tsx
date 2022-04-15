@@ -10,6 +10,7 @@ import { JoinGame } from './JoinGame';
 import { CancelGame } from './CancelGame';
 import { OpenGame } from './OpenGame';
 import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
+import { RefreshIcon } from '@heroicons/react/solid';
 
 const GameList = () => {
   const wallet = useAnchorWallet();
@@ -18,38 +19,52 @@ const GameList = () => {
   const { gameList, getGameList } = useGameListStore();
 
   useEffect(()=>{
+    loadAccounts();
+  }, [connection, wallet]);
+
+  const loadAccounts = () => {
     if (connection !== undefined) {
       const program = getProgram(wallet, connection);
       getGameList(program);
     }
-  }, [connection, wallet]);
+  };
 
   if (gameList === undefined || gameList !== undefined && gameList.length === 0) {
     return (
-      <div>No open games. Create one above.</div>
+      <>
+        <div className='flex w-full justify-end'>
+          <button onClick={loadAccounts}><RefreshIcon className='h-5 w-5'/></button>
+        </div>
+        <div>No open games. Create one above.</div>
+      </>
     )
   }
   return (
-  <table className="table-fixed">
-    <thead>
-      <tr>
-        <th>Wager</th>
-        <th>Initializer</th>
-        <th>Players</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {gameList.map((n, idx) => (
-        <GameEntry
-          key={`${idx}`}
-          account={n.account}
-          publicKey={n.publicKey as PublicKey}
-          walletPubkey={wallet ? wallet.publicKey as PublicKey: undefined}
-        />
-      ))}
-    </tbody>
-  </table>
+  <>
+    <div className='flex w-full justify-end'>
+      <button onClick={loadAccounts}><RefreshIcon className='h-5 w-5'/></button>
+    </div>
+    <table className="table-fixed">
+      <thead>
+        <tr>
+          <th>Wager</th>
+          <th>Initializer</th>
+          <th>Players</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {gameList.map((n, idx) => (
+          <GameEntry
+            key={`${idx}`}
+            account={n.account}
+            publicKey={n.publicKey as PublicKey}
+            walletPubkey={wallet ? wallet.publicKey as PublicKey: undefined}
+          />
+        ))}
+      </tbody>
+    </table>
+  </>
   );
 }
 
