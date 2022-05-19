@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import { clearGameInputs, createGameInputs } from 'utils/gameInputs';
 import useUserSOLBalanceStore from 'stores/useUserSOLBalanceStore';
 import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
+import { RequestAirdrop } from './RequestAirdrop';
 
 export const CreateGame: FC = () => {
     const wallet = useAnchorWallet();
@@ -108,15 +109,16 @@ export const CreateGame: FC = () => {
             {wallet && <p className="text-slate-300 text-xs">balance: {(balance || 0).toLocaleString()} sol</p>}
             <button
                 className="block mx-auto group w-60 mt-2 btn animate disabled:animate-none bg-slate-600"
-                onClick={onClick} disabled={!wallet}
+                onClick={onClick} disabled={!wallet || balance === 0}
             >
                 <div className="hidden group-disabled:block ">
-                    Wallet not connected
+                    {balance === 0 && wallet ? "Insufficient funds" : "Wallet not connected"}
                 </div>
                 <span className="block group-disabled:hidden" > 
-                    Create Game 
+                    Create Game
                 </span>
             </button>
+            {balance === 0 && wallet && <RequestAirdrop></RequestAirdrop>}
             </div>
 
             <br></br>

@@ -109,7 +109,10 @@ class PiecePlacementManager {
                 this.dragging = undefined;
                 this.draggingLastSafeGridPosition = undefined;
                 if (this.contractController !== undefined) {
-                    const gridPosition = this.entityManager.draggableEntities.get(draggingId).getGridPosition();
+                    const draggedEntity: DraggableEntity = this.entityManager.draggableEntities.get(draggingId);
+                    const gridPosition = draggedEntity.getGridPosition();
+
+                    draggedEntity.setPending(true);
 
                     let success = false;
                     if (gridPosition.y >= 0 && gridPosition.y <=7) {
@@ -131,6 +134,7 @@ class PiecePlacementManager {
                     if (!success) {
                         this.entityManager.draggableEntities.get(draggingId).setGridPosition(lastSafePosition);
                     }
+                    draggedEntity.setPending(false);
                 }
             }
 
