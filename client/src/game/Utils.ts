@@ -94,6 +94,7 @@ export const cloneModel = (source: Object3D): Object3D => {
         const clonedMesh = node;
         const sourceMesh = sourceLookup.get(node);
         const sourceBones = sourceMesh.skeleton.bones;
+        clonedMesh.material = sourceMesh.material.clone();
         clonedMesh.skeleton = sourceMesh.skeleton.clone();
         clonedMesh.bindMatrix.copy(sourceMesh.bindMatrix);
         clonedMesh.skeleton.bones = sourceBones.map((bone: Bone) => {

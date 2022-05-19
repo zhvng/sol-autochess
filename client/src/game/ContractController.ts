@@ -223,7 +223,6 @@ class ContractController {
                     await this.fetchGameState();
                     this.entityManager.updateOpponentHiddenPieces(this.lastGameState.entities.all, this.isInitializer);
                     // check timer , if timer is over reveal2
-                    console.log(this.lastGameState);
                     this.timestamp = (this.lastGameState.pieceTimer as BN).toNumber();
                     if (this.timeRemaining() === 0) {
                         this.gameProgress = GameProgress.Reveal2;
@@ -555,7 +554,7 @@ class ContractController {
 
             gameOverDiv.style.textAlign ='center';
             gameOverDiv.style.width ='100%';
-            gameOverDiv.style.backgroundColor ='rgba(255,255,255,.6)';
+            gameOverDiv.style.backgroundColor ='rgba(255,255,255,.8)';
             gameOverDiv.style.padding ='10px';
  
             const gameOverObject = new CSS2DObject(gameOverDiv)

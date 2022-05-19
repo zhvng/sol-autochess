@@ -1,11 +1,12 @@
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL, TransactionSignature } from '@solana/web3.js';
 import { FC, useCallback } from 'react';
 import { notify } from "../utils/notifications";
 import useUserSOLBalanceStore from '../stores/useUserSOLBalanceStore';
+import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
 
 export const RequestAirdrop: FC = () => {
-    const { connection } = useConnection();
+    const { connection } = useConnectionWrapper();
     const { publicKey } = useWallet();
     const { getUserSOLBalance } = useUserSOLBalanceStore();
 
@@ -33,10 +34,10 @@ export const RequestAirdrop: FC = () => {
     return (
         <div>
             <button
-                className="px-8 m-2 btn animate-pulse bg-gradient-to-r from-[#9945FF] to-[#14F195] hover:from-pink-500 hover:to-yellow-500 ..."
+                className="block mx-auto group w-60 mt-2 btn animate disabled:animate-none bg-slate-600"
                 onClick={onClick}
             >
-                <span>Airdrop 1 </span>
+                <span>Get test sol</span>
             </button>
         </div>
     );

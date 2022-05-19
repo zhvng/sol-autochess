@@ -1,4 +1,4 @@
-import { AnimationAction, AnimationClip, AnimationMixer, BoxBufferGeometry, Group, Intersection, LoopOnce, Mesh, MeshStandardMaterial, Object3D, Quaternion, QuaternionKeyframeTrack, Raycaster, Scene, Vector2, Vector3, VectorKeyframeTrack } from "three";
+import { AnimationAction, AnimationClip, AnimationMixer, BoxBufferGeometry, Color, Group, Intersection, LoopOnce, Mesh, MeshStandardMaterial, Object3D, Quaternion, QuaternionKeyframeTrack, Raycaster, RGBAFormat, Scene, SkinnedMesh, Sprite, SpriteMaterial, TextureLoader, Vector2, Vector3, VectorKeyframeTrack } from "three";
 import { GLTF } from "three/examples/jsm/loaders/GLTFLoader";
 import { ControllerWasm, UnitTypeWasm } from "wasm-client";
 import WasmController from "./WasmController";
@@ -11,6 +11,7 @@ class DraggableEntity {
     private mixer: AnimationMixer;
     private state: UnitState = UnitState.Idle;
     private model: Group;
+    private loadingSprite: Sprite;
     private dragBox: Mesh;
     private unit: Group;
     private lastGridPosition: Vector2;
@@ -21,11 +22,12 @@ class DraggableEntity {
         private readonly unitType: UnitTypeWasm,
         private readonly controller: ControllerWasm,
     ) {
-        // clone model, add to scene and set the initial position.
+        // Clone model, add to scene and set the initial position.
         this.unit = new Group();
         this.model = cloneModel(gltf.scene) as Group;
-        // add to unit
         this.unit.add(this.model);
+
+        // Add a box for player to drag by
         this.dragBox = new Mesh(
             new BoxBufferGeometry(4, 4, 4),
             new MeshStandardMaterial({
@@ -33,6 +35,19 @@ class DraggableEntity {
             })
         );
         this.unit.add(this.dragBox)
+
+        // Add sprite for loading
+        const map = new TextureLoader().load('../resources/sprites/loading.png');
+        const material = new SpriteMaterial( { map } );
+        
+        const sprite = new Sprite( material );
+
+        sprite.scale.set(2, 2, 1);
+        sprite.position.set(0, 5, 0);
+        sprite.visible = false;
+        this.loadingSprite = sprite;
+        this.unit.add(sprite);
+
         this.scene.add(this.unit);
 
         const convertedPosition = boardCoordinatesTo3D(gridCoordinatesToBoardCoordinates(this.gridPosition));
@@ -81,6 +96,20 @@ class DraggableEntity {
 
     public getGridPosition(): Vector2 | undefined {
         return this.lastGridPosition;
+    }
+
+    public setPending(pending: boolean) {
+        // const opacity = pending ? 0.25 : 1;
+        // const transparent = pending;
+        // this.model.traverse((node)=>{
+        //     if (node instanceof SkinnedMesh) {
+        //         node.material.opacity = opacity;
+        //         node.material.transparent = transparent;
+        //     }
+        // })
+        this.loadingSprite.visible = pending
+        
+
     }
 
     public setGridPosition(gridPosition: Vector2, otherEntities?: Map<number, DraggableEntity>) {
