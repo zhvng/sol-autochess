@@ -73,6 +73,9 @@ class WasmController {
     public getEntityById(id: number) {
         return this.wasmState.get_entity_by_id(id);
     }
+    public getUnitStartingHealth(unitType: UnitTypeWasm) {
+        return this.wasmState.get_unit_starting_health(unitType);
+    }
 }
 
 export default WasmController;

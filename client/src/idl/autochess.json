@@ -370,6 +370,22 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "drainBurner",
+      "accounts": [
+        {
+          "name": "burner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "main",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -696,6 +712,56 @@
       }
     },
     {
+      "name": "Action",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "EntityStateChange",
+            "fields": [
+              {
+                "name": "state",
+                "type": {
+                  "defined": "EntityState"
+                }
+              }
+            ]
+          },
+          {
+            "name": "Target",
+            "fields": [
+              {
+                "name": "target_id",
+                "type": {
+                  "option": "u16"
+                }
+              }
+            ]
+          },
+          {
+            "name": "Move",
+            "fields": [
+              {
+                "name": "to",
+                "type": {
+                  "defined": "Location"
+                }
+              }
+            ]
+          },
+          {
+            "name": "Damage",
+            "fields": [
+              {
+                "name": "amount",
+                "type": "u16"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "EntityState",
       "type": {
         "kind": "enum",
@@ -787,27 +853,6 @@
           },
           {
             "name": "Graveyard"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Apply",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Damage",
-            "fields": [
-              {
-                "name": "amount",
-                "type": "u16"
-              },
-              {
-                "name": "target_id",
-                "type": "u16"
-              }
-            ]
           }
         ]
       }

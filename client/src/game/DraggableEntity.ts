@@ -42,7 +42,7 @@ class DraggableEntity {
         
         const sprite = new Sprite( material );
 
-        sprite.scale.set(2, 2, 1);
+        sprite.scale.set(1.5, 2, 1);
         sprite.position.set(0, 5, 0);
         sprite.visible = false;
         this.loadingSprite = sprite;

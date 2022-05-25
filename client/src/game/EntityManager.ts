@@ -150,9 +150,10 @@ class EntityManager {
 
             const controller = parseControllerFromAnchor(entity.owner);
 
+            const startingHealth = this.wasmController.getUnitStartingHealth(unitType)
             this.createEntity(entity.id, 
                 new Vector2(entity.position.x, entity.position.y),
-                entity.health,
+                startingHealth,
                 unitType,
                 controller
             );
