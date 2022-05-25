@@ -1,4 +1,4 @@
-import { Program, web3 } from "@project-serum/anchor";
+import { Instruction, Program, web3 } from "@project-serum/anchor";
 import { AnchorWallet, useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { Keypair, PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
 import TWEEN from "@tweenjs/tween.js";
@@ -276,21 +276,31 @@ class ContractController {
                         }
                     }
                     notify({ type: 'info', message: 'simulating game...' });
+                    const instructions = []
                     // crank game a ton
                     for (let i=0; i<5; i++) {
                         const n = 4 + i + Math.floor(this.lastGameState.tick / 20);
-                        const tx = this.program.transaction.crankGame(n, {
+                        const ix = this.program.instruction.crankGame(n, {
                             accounts: {
                                 game: this.gamePDAKey,
                                 invoker: this.burnerWallet.publicKey,
                             },
                             signers: [this.burnerWallet],
                         });
-                        web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
-                            this.burnerWallet
-                        ]);
-                        this.txCount += 1;
+                        instructions.push(ix)
                     }
+                    const tx = this.program.transaction.crankGame(1, {
+                        accounts: {
+                            game: this.gamePDAKey,
+                            invoker: this.burnerWallet.publicKey,
+                        },
+                        postInstructions: instructions,
+                        signers: [this.burnerWallet],
+                    });
+                    const signature = await web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
+                        this.burnerWallet
+                    ]);
+                    this.txCount += 1;
 
                     break;
 
@@ -600,21 +610,19 @@ class ContractController {
         return balance;
     }
 
+    private async getDrainBurnerIx(): Promise<TransactionInstruction> {
+        return this.program.instruction.drainBurner({
+            accounts: {
+                burner: this.burnerWallet.publicKey,
+                main: this.program.provider.wallet.publicKey,
+            }
+        });
+    }
+
     private async drainBurner(): Promise<boolean> {
         let signature = '';
         try{
-            const balance = await this.getBurnerBalance();
-            const fee = 5000 * 2; // hardcoded, but should be enough for the time being. migrate to getFeeForMessage
-
-            if (balance <= fee) {
-                return true;
-            }
-
-            const drainBurnerWalletIx = SystemProgram.transfer({
-                fromPubkey: this.burnerWallet.publicKey,
-                toPubkey: this.program.provider.wallet.publicKey,
-                lamports: balance - fee,
-            });
+            const drainBurnerWalletIx: TransactionInstruction = await this.getDrainBurnerIx();
             const tx = new web3.Transaction().add(drainBurnerWalletIx);
             signature = await web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
                 this.burnerWallet
@@ -633,15 +641,7 @@ class ContractController {
         console.log('sending claiminactivity');
         let signature = '';
         try {
-            const balance = await this.program.provider.connection.getBalance(
-                this.burnerWallet.publicKey,
-                'confirmed'
-            );
-            const drainBurnerWalletIx: TransactionInstruction = SystemProgram.transfer({
-                fromPubkey: this.burnerWallet.publicKey,
-                toPubkey: this.program.provider.wallet.publicKey,
-                lamports: balance,
-            });
+            const drainBurnerWalletIx: TransactionInstruction = await this.getDrainBurnerIx();
     
             signature = await this.program.rpc.claimInactivity({
                 accounts: {
@@ -722,15 +722,7 @@ class ContractController {
     private async cancelGame() {
         let signature = '';
         try {
-            const balance = await this.program.provider.connection.getBalance(
-                this.burnerWallet.publicKey,
-                'confirmed'
-            );
-            const drainBurnerWalletIx: TransactionInstruction = SystemProgram.transfer({
-                fromPubkey: this.burnerWallet.publicKey,
-                toPubkey: this.program.provider.wallet.publicKey,
-                lamports: balance,
-            });
+            const drainBurnerWalletIx: TransactionInstruction = await this.getDrainBurnerIx();
     
             signature = await this.program.rpc.cancelGame({
                 accounts: {
@@ -742,7 +734,7 @@ class ContractController {
                     drainBurnerWalletIx
                 ],
                 signers: [
-                    this.burnerWallet
+                    this.burnerWallet,
                 ]
             });
             notify({ type: 'success', message: 'Transaction successful!', txid: signature });
