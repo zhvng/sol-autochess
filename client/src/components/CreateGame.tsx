@@ -60,7 +60,7 @@ export const CreateGame: FC = () => {
             const topUpBurnerWalletIx: TransactionInstruction = SystemProgram.transfer({
                 fromPubkey: program.provider.wallet.publicKey,
                 toPubkey: burnerWallet.publicKey,
-                lamports: Math.floor(anchor.web3.LAMPORTS_PER_SOL / 1000), // .001 sol to cover tx fees
+                lamports: Math.floor(anchor.web3.LAMPORTS_PER_SOL / 500), // .001 sol to cover tx fees
             });
 
             const wagerLamports = wagerSize*anchor.web3.LAMPORTS_PER_SOL;
@@ -93,8 +93,11 @@ export const CreateGame: FC = () => {
     }, [wallet, notify, connection, wagerSize]);
 
     return (
-        <div>
-            <div className={`border-slate-600 border-2 p-3 rounded-lg ${!wallet && 'text-slate-600'}`}>
+        <div className='w-72 mx-auto border-white bg-slate-800 border-2 rounded-lg'>
+            <div className='px-2 w-full border-b-2 border-white'>
+                Create game
+            </div>
+            <div className={`p-3 text-center ${!wallet && 'text-slate-600'}`}>
                 Wager <input type="number" 
                 value={wagerSize} 
                 onChange={(e)=>{
@@ -120,8 +123,6 @@ export const CreateGame: FC = () => {
             </button>
             {balance === 0 && wallet && <RequestAirdrop></RequestAirdrop>}
             </div>
-
-            <br></br>
         </div>
     );
 };

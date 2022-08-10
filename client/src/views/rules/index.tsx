@@ -1,16 +1,15 @@
-
 import { FC } from "react";
 
 export const RulesView: FC = ({ }) => {
   return (
     <div className="md:hero mx-auto p-4">
       <div className="md:hero-content flex flex-col">
+        <h1 className="text-center text-xl font-bold bg-clip-text text-amber-100">
+            Rules
+        </h1>
         <h4 className="md:w-1/2 text-center text-slate-300 my-2 font-mono">
-          <h1 className="text-center text-xl font-bold text-transparent bg-clip-text text-amber-100">
-            how to play
-          </h1>
-          <br></br>
-          <ul className="inline-block text-left">
+          <img src='/screenshot1.png' width='80%' className="rounded-xl mx-auto mb-5" />
+          <ul className="inline-block text-left font-mono">
             <li>1. Create or join a game with your preferred wager amount</li>
             <li>2. At the start of the game, you draw 5 random units</li>
             <li>3. Place any 3 of them on your side of the board</li>

@@ -9,7 +9,7 @@ declare_id!("AwrQQpL4QssWCUCjqrmZ1uySFGBR32jhhhSwm7A57tcS");
 #[program]
 pub mod autochess {
 
-    use anchor_lang::solana_program::{log::sol_log_compute_units, system_instruction};
+    use anchor_lang::solana_program::{log::sol_log_compute_units};
     use state::units;
 
     use crate::state::{game::{validate_reveal, WinCondition}, entities::Controller, units::UnitType};
@@ -369,10 +369,19 @@ pub mod autochess {
         let main = &ctx.accounts.main;
 
         let amount = burner.lamports();
+        msg!("Burner wallet has {} sol", amount);
 
-        system_instruction::transfer(burner.key, main.key, amount);
-
-        Ok(())
+        let ix = anchor_lang::solana_program::system_instruction::transfer(
+            burner.key,
+            main.key, 
+            amount);
+        anchor_lang::solana_program::program::invoke(
+            &ix,
+            &[
+                burner.to_account_info(),
+                main.to_account_info(),
+            ],
+        )
     }
 }
 
@@ -508,6 +517,7 @@ pub struct DrainBurner<'info> {
     burner: Signer<'info>,
     #[account(mut)]
     main: UncheckedAccount<'info>,
+    system_program: Program<'info, System>,
 }
 
 

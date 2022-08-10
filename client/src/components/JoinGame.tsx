@@ -30,7 +30,7 @@ export const JoinGame = ({gamePDAKey}) => {
             const topUpBurnerWalletIx: TransactionInstruction = SystemProgram.transfer({
                 fromPubkey: program.provider.wallet.publicKey,
                 toPubkey: burnerWallet.publicKey,
-                lamports: Math.floor(anchor.web3.LAMPORTS_PER_SOL / 1000), // .001 sol to cover tx fees
+                lamports: Math.floor(anchor.web3.LAMPORTS_PER_SOL / 500), // .001 sol to cover tx fees
             });
 
             signature = await program.rpc.joinGame(

@@ -143,6 +143,28 @@ describe('autochess', async () => {
     });
   });
 
+  it ('drain burner!', async () => {
+    const burner = anchor.web3.Keypair.generate();
+    const main = anchor.web3.Keypair.generate();
+    await program.provider.connection.confirmTransaction(
+      await program.provider.connection.requestAirdrop(burner.publicKey, anchor.web3.LAMPORTS_PER_SOL*2),
+      "confirmed"
+    );
+    console.log(burner, main)
+    await program.rpc.drainBurner({
+      accounts: {
+        burner: burner.publicKey,
+        main: main.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      },
+      signers: [burner]
+    });
+    const mainInfo = await program.account.game.getAccountInfo(main.publicKey);
+    const burnerInfo = await program.account.game.getAccountInfo(burner.publicKey);
+    assert.deepStrictEqual(mainInfo.lamports, anchor.web3.LAMPORTS_PER_SOL*2, 'Main did not receive tokens');
+    assert.deepStrictEqual(burnerInfo, null, 'Burner was not drained');
+  })
+
   it('reveals!', async () => {
     const tx = await program.rpc.revealFirst([...Buffer.from(opponentReveal1, 'hex')], [...Buffer.from(opponentSecret1, 'hex')], {
       accounts: {

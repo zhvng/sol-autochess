@@ -371,11 +371,7 @@ class ContractController {
 
         const button3 = document.createElement('button');
         button3.addEventListener('click', async ()=>{
-            const drained = await this.drainBurner();
-            if (drained) {
-                clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
-                window.location.href = '/';
-            }
+            this.cleanupBurner()
         });
         button3.innerHTML="empty burner wallet";
         button3.style.display = 'block';
@@ -543,11 +539,7 @@ class ContractController {
                 const button = document.createElement('button');
                 button.addEventListener('pointerdown', async ()=>{
                     console.log('returning');
-                    const drained = await this.drainBurner();
-                    if (drained) {
-                        clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
-                        window.location.href = '/';
-                    }
+                    await this.cleanupBurner();
                 });
                 button.innerHTML=`return`;
                 button.style.border = '2px solid gray';
@@ -573,6 +565,14 @@ class ContractController {
             this.scene.add(gameOverObject);
         }
     } 
+    private async cleanupBurner() {
+        const balance = await this.getBurnerBalance();
+        const drained = balance === 0 || await this.drainBurner();
+        if (drained) {
+            clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
+            window.location.href = '/';
+        }
+    }
 
     private async claimVictory() {
         console.log('sending claim victory');
@@ -588,11 +588,7 @@ class ContractController {
             });
 
             notify({ type: 'success', message: 'Transaction successful!', txid: signature });
-            const drained = await this.drainBurner();
-            if (drained) {
-                clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
-                window.location.href = '/';
-            }
+            this.cleanupBurner();
         } catch (error: any) {
             notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });
             console.log('error', `Transaction failed! ${error?.message}`, signature);
@@ -615,6 +611,7 @@ class ContractController {
             accounts: {
                 burner: this.burnerWallet.publicKey,
                 main: this.program.provider.wallet.publicKey,
+                systemProgram: SystemProgram.programId,
             }
         });
     }

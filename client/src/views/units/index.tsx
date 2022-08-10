@@ -6,10 +6,6 @@ export const UnitsView: FC = ({ }) => {
   return (
 <div className="md:hero mx-auto p-4">
         <h4 className="md:w-1/2 text-center text-slate-300 my-2 font-mono">
-          <h1 className="text-center text-xl font-bold text-transparent bg-clip-text text-amber-100">
-            units
-          </h1>
-          <br></br>
           <ol>
             <li className="text-amber-100">Wolf</li>
               <ul className="inline-block text-left">
@@ -18,6 +14,7 @@ export const UnitsView: FC = ({ }) => {
                 <li>range: 1.25</li> 
                 <li>damage: 15</li>
                 <li>health: 100</li>
+                <li>crit: 19.6%</li>
               </ul>
             <li className="text-amber-100 mt-5">Bear</li>
               <ul className="inline-block text-left">
@@ -26,6 +23,7 @@ export const UnitsView: FC = ({ }) => {
                 <li>range: 1.5</li> 
                 <li>damage: 10</li>
                 <li>health: 250</li>
+                <li>crit: 7.8%</li>
               </ul>
               <li className="text-amber-100 mt-5">Bull</li>
               <ul className="inline-block text-left">
@@ -34,6 +32,7 @@ export const UnitsView: FC = ({ }) => {
                 <li>range: 1.5</li> 
                 <li>damage: 25</li>
                 <li>health: 150</li>
+                <li>crit: 7.8%</li>
               </ul>
           </ol>
           <br></br>
