@@ -10,7 +10,7 @@ import { JoinGame } from './JoinGame';
 import { CancelGame } from './CancelGame';
 import { OpenGame } from './OpenGame';
 import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
-import { RefreshIcon } from '@heroicons/react/solid';
+import { RefreshIcon, PuzzleIcon } from '@heroicons/react/solid';
 
 const GameList = () => {
   const wallet = useAnchorWallet();
@@ -29,62 +29,50 @@ const GameList = () => {
     }
   };
 
-  if (gameList === undefined || gameList !== undefined && gameList.length === 0) {
-    return (
-      <>
-        <div className='flex w-full justify-end'>
-          <button onClick={loadAccounts}><RefreshIcon className='h-5 w-5'/></button>
-        </div>
-        <table className="table-fixed">
-          <thead>
-            <tr>
-              <th>Wager</th>
-              <th>Initializer</th>
-              <th>Players</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              className={`text-slate-300 h-1 border-2 max-w-full`}
-            >
-              <td className='w-32 text-center'></td>
-              <td className='max-w-48 w-48 min-w-48 text-center overflow-hidden overflow-ellipsis'>
-              </td>
-              <td className='w-1/4 text-center'></td>
-              <td className='w-1/4 text-center'></td>
-            </tr>
-          </tbody>
-        </table>
-        <div>No open games. Create one above.</div>
-      </>
-    )
-  }
+  const gameListEmpty = (gameList === undefined || gameList !== undefined && gameList.length === 0)
+    
   return (
   <>
-    <div className='flex w-full justify-end'>
-      <button onClick={loadAccounts}><RefreshIcon className='h-5 w-5'/></button>
+    <div className='flex w-full flex-row mt-4'>
+      <h2 className='text-lg flex-auto'>
+        Open Games
+      </h2>
+      <div className='justify-end'>
+        <button onClick={loadAccounts} className='align-middle'><RefreshIcon className='h-5 w-5'/></button>
+      </div>
     </div>
-    <table className="table-fixed">
-      <thead>
-        <tr>
-          <th>Wager</th>
-          <th>Initializer</th>
-          <th>Players</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {gameList.map((n, idx) => (
-          <GameEntry
-            key={`${idx}`}
-            account={n.account}
-            publicKey={n.publicKey as PublicKey}
-            walletPubkey={wallet ? wallet.publicKey as PublicKey: undefined}
-          />
-        ))}
-      </tbody>
-    </table>
+    {!gameListEmpty ? (
+      <table className="table-fixed">
+        <thead>
+          <tr>
+            <th>Wager</th>
+            <th>Initializer</th>
+            <th>Players</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {gameList.map((n, idx) => (
+            <GameEntry
+              key={`${idx}`}
+              account={n.account}
+              publicKey={n.publicKey as PublicKey}
+              walletPubkey={wallet ? wallet.publicKey as PublicKey: undefined}
+            />
+          ))}
+        </tbody>
+      </table>)
+      : (
+        <div className='place-items-center w-full p-8'>
+          
+          <div className='mx-auto w-full text-center border-slate-600 border-2 p-4 rounded-lg'>
+            <div className='text-slate-600'>
+              No open games. Create one above.
+            </div>
+
+          </div>
+        </div>
+      )}
   </>
   );
 }

@@ -1,6 +1,6 @@
 extern crate autochess;
 
-use std::{collections::{BTreeMap, HashMap}, convert::TryInto};
+use std::{collections::{BTreeMap}, convert::TryInto};
 
 use wasm_bindgen::prelude::*;
 

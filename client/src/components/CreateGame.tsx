@@ -7,7 +7,6 @@ import { getProgram } from 'utils/program';
 import { notify } from "../utils/notifications";
 import * as anchor from "@project-serum/anchor";
 import { v4 as uuidv4 } from 'uuid';
-import { useRouter } from 'next/router';
 import { clearGameInputs, createGameInputs } from 'utils/gameInputs';
 import useUserSOLBalanceStore from 'stores/useUserSOLBalanceStore';
 import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
@@ -19,14 +18,6 @@ export const CreateGame: FC = () => {
 
     const [wagerSize, setWagerSize] = useState<number>(0.1);
     const balance = useUserSOLBalanceStore((s) => s.balance);
-    const { getUserSOLBalance } = useUserSOLBalanceStore();
-    
-    useEffect(() => {
-      if (wallet !== undefined && wallet.publicKey !== undefined) {
-        console.log('main wallet: ', wallet.publicKey.toBase58())
-        getUserSOLBalance(wallet.publicKey, connection)
-      }
-    }, [wallet, connection, getUserSOLBalance])
 
     const onClick = useCallback(async () => {
         if (!wallet) {
@@ -90,13 +81,13 @@ export const CreateGame: FC = () => {
             clearGameInputs(gamePDAKey, wallet.publicKey);
             return;
         }
-    }, [wallet, notify, connection, wagerSize]);
+    }, [wallet, connection, wagerSize]);
 
     return (
-        <div className='w-72 mx-auto border-white bg-slate-800 border-2 rounded-lg'>
-            <div className='px-2 w-full border-b-2 border-white'>
+        <div className='w-52 bg-slate-800 rounded-lg'>
+            {/* <div className='px-2 w-full border-b-2 border-white'>
                 Create game
-            </div>
+            </div> */}
             <div className={`p-3 text-center ${!wallet && 'text-slate-600'}`}>
                 Wager <input type="number" 
                 value={wagerSize} 
@@ -109,9 +100,9 @@ export const CreateGame: FC = () => {
                 min="0" 
                 step="0.05" 
                 className='bg-slate-600 w-[75px] h-10 rounded-md p-2'></input> sol
-            {wallet && <p className="text-slate-300 text-xs">balance: {(balance || 0).toLocaleString()} sol</p>}
+            {/* {wallet && <p className="text-slate-300 text-xs">balance: {(balance || 0).toLocaleString()} sol</p>} */}
             <button
-                className="block mx-auto group w-60 mt-2 btn animate disabled:animate-none bg-slate-600"
+                className="block mx-auto group mt-2 btn animate disabled:animate-none bg-slate-600"
                 onClick={onClick} disabled={!wallet || balance === 0}
             >
                 <div className="hidden group-disabled:block ">
