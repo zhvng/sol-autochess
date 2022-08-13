@@ -5,10 +5,11 @@
   "private": false,
   "scripts": {
     "build-wasm": "cd wasm-client && wasm-pack build --target web -d ./pkg && sed -i '' 's/export function init/export function initWasm/g' ./pkg/wasm_client.js ",
-    "local": "NEXT_PUBLIC_CLIENT_MODE=local NODE_OPTIONS=--max_old_space_size=4096 next dev",
-    "dev": "NEXT_PUBLIC_CLIENT_MODE=dev NODE_OPTIONS=--max_old_space_size=4096 next dev",
-    "build": "NEXT_PUBLIC_CLIENT_MODE=production && npm run build-wasm && NODE_OPTIONS=--max_old_space_size=4096 next build",
-    "start": "NEXT_PUBLIC_CLIENT_MODE=production NODE_OPTIONS=--max_old_space_size=4096 next start",
+    "local": "NEXT_PUBLIC_CLIENT_MODE=local next dev",
+    "dev": "NEXT_PUBLIC_CLIENT_MODE=dev next dev",
+    "build": "NEXT_PUBLIC_CLIENT_MODE=production && npm run build-wasm && next build",
+    "build-vercel": "NEXT_PUBLIC_CLIENT_MODE=production && next build",
+    "start": "NEXT_PUBLIC_CLIENT_MODE=production next start",
     "lint": "next lint"
   },
   "dependencies": {
@@ -24,7 +25,7 @@
     "@types/three": "^0.138.0",
     "daisyui": "^1.24.3",
     "immer": "^9.0.12",
-    "next": "12.1.0",
+    "next": "^12.2.5",
     "next-compose-plugins": "^2.2.1",
     "next-transpile-modules": "^9.0.0",
     "react": "17.0.2",
