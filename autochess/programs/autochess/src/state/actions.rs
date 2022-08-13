@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap};
 
-use super::{entities::{EntityState, Entities, Entity}, utils::Location};
+use super::{entities::{EntityState}, utils::Location};
 
 pub struct Actions {
     pub all: BTreeMap<u16, Vec<Action>>, //map from id to a vector of actions

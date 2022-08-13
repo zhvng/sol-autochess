@@ -1,10 +1,10 @@
-use std::{collections::BTreeMap, fs::OpenOptions};
+use std::{collections::BTreeMap};
 
-use anchor_lang::{solana_program::{hash::{Hash, hash, extend_and_hash}, loader_instruction::LoaderInstruction, log::sol_log_compute_units}, prelude::*};
+use anchor_lang::{solana_program::{hash::{Hash, hash, extend_and_hash}}, prelude::*};
 
 use crate::state::entities;
 
-use super::{utils, entities::{Entity, Entities, EntityState}, units, actions::{Actions, Action}};
+use super::{utils, entities::{Entities, EntityState}, units, actions::{Actions, Action}};
 
 use serde;
 
@@ -38,6 +38,13 @@ pub struct Game {
     pub o_has_revealed: bool,
     pub reveal_1: Option<[u8; 32]>,
     pub reveal_2: Option<[u8; 32]>,
+
+    /// During placement phase, this indicates whether the player has locked in their state ahead of timer.
+    pub i_locked_in: bool,
+    pub o_locked_in: bool,
+
+    /// Boolean indicating whether placing new pieces is disabled
+    pub placing_disabled: bool,
 
     /// Option of timestamp at which placing new pieces is disabled.
     pub piece_timer: Option<i64>,
@@ -78,6 +85,9 @@ impl Game {
     pub fn initialize_default(&mut self) {
         self.i_has_revealed = false;
         self.o_has_revealed = false;
+        self.i_locked_in = false;
+        self.o_locked_in = false;
+        self.placing_disabled = false;
         self.state = 0;
         self.tick = 0;
         self.random_calls = 0;
@@ -181,18 +191,16 @@ impl Game {
             // Hand position must be unique
             for entity in &mut self.entities.all {
                 if entity.owner == player {
-                    match entity.unit_type {
-                        units::UnitType::Hidden{hand_position: hand_position_compare} => {
-                            if hand_position_compare == hand_position {
-                                return None;
-                            }
+                    if let units::UnitType::Hidden{hand_position: hand_position_compare} = entity.unit_type {
+                        if hand_position_compare == hand_position {
+                            return None;
                         }
-                        _ =>{}
                     }
                 }
             }
             // Finally, place the piece
             let id = self.entities.create_hidden(player, x, y, hand_position);
+            self.unlock_players();
             return Some(id);
         } else {
             return None;
@@ -214,6 +222,8 @@ impl Game {
             if hand_position >= 5 {
                 return None;
             }
+
+            self.unlock_players();
             // Move if we find the hand position, otherwise fail
             for entity in &mut self.entities.all {
                 if entity.owner == player {
@@ -250,8 +260,9 @@ impl Game {
                 match entity.unit_type {
                     units::UnitType::Hidden{hand_position: hand_position_compare} => {
                         if hand_position_compare == hand_position {
-                            // This piece has already been placed. Move it.
+                            // This piece has already been placed. Remove it.
                             self.entities.remove_by_id(entity.id);
+                            self.unlock_players();
                             return Some(entity.id);
                         }
                     }
@@ -319,7 +330,7 @@ impl Game {
                     entities::EntityState::Idle => {
                         entity.walk_or_aa(&mut actions, all_entities, unit_map);
                     },
-                    entities::EntityState::Moving{to} => {
+                    entities::EntityState::Moving{to: _} => {
                         entity.walk_or_aa(&mut actions, all_entities, unit_map);
                     },
                     entities::EntityState::Attack{progress, attack_on, target_id} => {
@@ -395,6 +406,49 @@ impl Game {
             entities::Controller::Opponent
         }
     }
+
+    pub fn lock_in_player(&mut self, player_type: entities::Controller) -> ProgramResult {
+        match player_type {
+            entities::Controller::Initializer => {
+                self.i_locked_in = true;
+            }
+            entities::Controller::Opponent => {
+                self.o_locked_in = true;
+            }
+            _ => {
+                return Err(ProgramError::InvalidArgument);
+            }
+        }
+        Ok(())
+    }
+
+    /// Called whenever entities is changed
+    pub fn unlock_players(&mut self) {
+        if self.i_locked_in || self.o_locked_in {
+            self.i_locked_in = false;
+            self.o_locked_in = false;
+        }
+    }
+
+    pub fn both_players_locked(&self) -> bool {
+        self.i_locked_in && self.o_locked_in
+    }
+    
+    /// Get a hash representing the current positions of all entities.
+    pub fn get_entities_hash(&self) -> [u8; 32] {
+        let mut to_hash: Vec<u8> = Vec::new();
+        for entity in &self.entities.all {
+            if let units::UnitType::Hidden{hand_position} = entity.unit_type {
+                to_hash.push(hand_position);
+                to_hash.push(entity.owner as u8);
+                to_hash.extend_from_slice(&entity.position.x.to_le_bytes());
+                to_hash.extend_from_slice(&entity.position.y.to_le_bytes());
+            }
+        }
+        to_hash.push(self.i_locked_in as u8);
+        to_hash.push(self.o_locked_in as u8);
+        return hash(&to_hash).to_bytes();
+    }
 }
 
 pub fn validate_reveal(stored_hash: &[u8; 32], reveal: &[u8; 32], secret: &[u8; 32]) -> bool {
@@ -432,4 +486,53 @@ pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::U
         result.push(deck[index as usize]);
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_entities_hash_test_empty() {
+        let test_game = Game::new_client();
+        let hash = test_game.get_entities_hash();
+        assert_eq!(hash, [150, 162, 150, 210, 36, 242, 133, 198, 123, 238, 147, 195, 15, 138, 48, 145, 87, 240, 218, 163, 93, 197, 184, 126, 65, 11, 120, 99, 10, 9, 207, 199]);
+    }
+    #[test]
+    fn get_entities_hash_test_changes() {
+        let mut test_game = Game::new_client();
+        let hash = test_game.get_entities_hash();
+        test_game.lock_in_player(entities::Controller::Initializer).ok();
+        let changed_hash = test_game.get_entities_hash();
+        assert_ne!(hash, changed_hash, "Hash didn't change when player locked in");
+    }
+
+    #[test]
+    fn lock_in_test() {
+        let mut test_game = Game::new_client();
+        assert!(!test_game.i_locked_in && !test_game.i_locked_in, "Initial state");
+        test_game.lock_in_player(entities::Controller::Initializer).ok();
+        assert!(test_game.i_locked_in && !test_game.o_locked_in, "Initializer locked in");
+        test_game.unlock_players();
+        assert!(!test_game.i_locked_in && !test_game.i_locked_in, "Both unlocked"); 
+        test_game.lock_in_player(entities::Controller::Initializer).ok(); 
+        test_game.lock_in_player(entities::Controller::Opponent).ok();
+        assert!(test_game.both_players_locked()); 
+    }
+
+    #[test]
+    fn place_piece_hidden_test_valid() {
+        let mut test_game = Game::new_client();
+        let result = test_game.place_piece_hidden(entities::Controller::Initializer, 5, 2, 2);
+        assert_eq!(result, Some(0));
+        assert_eq!(test_game.entities.all.len(), 1);
+        assert_eq!(test_game.entities.all[0].unit_type, units::UnitType::Hidden{hand_position: 2});
+    }
+    #[test]
+    fn place_piece_hidden_test_invalid() {
+        let mut test_game = Game::new_client();
+        let result = test_game.place_piece_hidden(entities::Controller::Opponent, 5, 2, 2);
+        assert_eq!(result, None);
+        assert_eq!(test_game.entities.all.len(), 0);
+    }
 }

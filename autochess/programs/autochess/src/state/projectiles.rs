@@ -1,8 +1,5 @@
-use std::collections::btree_map::Range;
-
-use anchor_lang::{prelude::*, solana_program::log::sol_log_compute_units};
-use super::{utils::Location, units::{UnitType, Unit, self}, entities::Entity};
-
+use anchor_lang::{prelude::*};
+use super::{utils::Location};
 
 #[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct Projectiles {

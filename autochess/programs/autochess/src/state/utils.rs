@@ -1,4 +1,4 @@
-use anchor_lang::{prelude::*, solana_program::log::sol_log_compute_units};
+use anchor_lang::{prelude::*};
 use serde;
 
 #[derive(Debug, PartialEq, Default, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]

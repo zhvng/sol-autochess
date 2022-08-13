@@ -1,8 +1,6 @@
 use anchor_lang::{prelude::*};
 use std::collections::BTreeMap;
 
-use super::{utils::Location, entities::{Entity, Entities}};
-
 pub fn get_unit_map() -> BTreeMap<UnitType, Unit> {
     let mut units = BTreeMap::new();
     const TICKS_PER_SECOND: u16 = 5;

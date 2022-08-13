@@ -244,10 +244,10 @@ pub enum EntityState {
 /// Enum denoting owner of an entity
 #[derive(Debug, PartialEq, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum Controller {
-    Opponent,
-    Initializer,
-    Contract,
-    Graveyard,
+    Opponent = 0,
+    Initializer = 1,
+    Contract = 2,
+    Graveyard = 3,
 }
 
 #[derive(Debug, AnchorDeserialize, AnchorSerialize, Clone, Copy)]

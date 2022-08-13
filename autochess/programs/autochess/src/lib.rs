@@ -2,17 +2,13 @@ pub mod state;
 
 use anchor_lang::{prelude::*};
 use state::game::Game;
-use state::units::UnitType;
 
 declare_id!("AwrQQpL4QssWCUCjqrmZ1uySFGBR32jhhhSwm7A57tcS");
 
 #[program]
 pub mod autochess {
-
-    use anchor_lang::solana_program::{log::sol_log_compute_units};
     use state::units;
-
-    use crate::state::{game::{validate_reveal, WinCondition}, entities::Controller, units::UnitType};
+    use crate::state::{game::{validate_reveal, WinCondition}, entities::Controller};
 
     use super::*;
 
@@ -20,7 +16,7 @@ pub mod autochess {
     /// Commitments are provided for to hide info until its reveal later.
     /// Send a burner wallet for fees for a smoother ux
     /// Set state to 0
-    pub fn create_game(ctx: Context<CreateGame>, game_id: String, burner_wallet: [u8; 32], wager: u64, commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
+    pub fn create_game(ctx: Context<CreateGame>, _game_id: String, burner_wallet: [u8; 32], wager: u64, commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
         let game = &mut ctx.accounts.game;
         game.initialize_default();
         game.initializer = *ctx.accounts.initializer.key;
@@ -192,8 +188,8 @@ pub mod autochess {
         let game = &mut ctx.accounts.game;
         let player_type = game.get_player_type(*ctx.accounts.invoker.key);
 
-        // if timer is expired, error
-        if ctx.accounts.clock.unix_timestamp > game.piece_timer.unwrap() {
+        // if placing is disabled, error
+        if game.placing_disabled {
             return Err(ErrorCode::TimeError.into());
         }
 
@@ -211,8 +207,8 @@ pub mod autochess {
         let game = &mut ctx.accounts.game;
         let player_type = game.get_player_type(*ctx.accounts.invoker.key);
 
-        // if timer is expired, error
-        if ctx.accounts.clock.unix_timestamp > game.piece_timer.unwrap() {
+        // if placing is disabled, error
+        if game.placing_disabled {
             return Err(ErrorCode::TimeError.into());
         }
 
@@ -230,8 +226,8 @@ pub mod autochess {
         let game = &mut ctx.accounts.game;
         let player_type = game.get_player_type(*ctx.accounts.invoker.key);
 
-        // if timer is expired, error
-        if ctx.accounts.clock.unix_timestamp > game.piece_timer.unwrap() {
+        // if placing is disabled, error
+        if game.placing_disabled { 
             return Err(ErrorCode::TimeError.into());
         }
 
@@ -243,6 +239,33 @@ pub mod autochess {
         Ok(())
     }
 
+    /// state = 2. Player locks in their piece placement with the goal of fast forwarding to the second reveal.
+    /// Lock in lasts until opposing player places a piece or locks in themself.
+    /// To prevent frontrunning, we compare the hash of the state of the board to the intended state before locking in.
+    pub fn lock_in(ctx: Context<LockIn>, entities_hash: [u8; 32]) -> ProgramResult {
+        let game = &mut ctx.accounts.game;
+
+        if game.placing_disabled {
+            return Err(ProgramError::InvalidArgument);
+        }
+
+        let player_type = game.get_player_type(*ctx.accounts.invoker.key);
+        let current_entities_hash = game.get_entities_hash();
+
+        if entities_hash != current_entities_hash {
+            return Err(ErrorCode::LockInError.into());
+        }
+        match game.lock_in_player(player_type) {
+            Ok(_) => {
+                if game.both_players_locked() {
+                    game.placing_disabled = true;
+                }
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
+    }
+
     /// state = 2. Each player reveals their second commitments. This also reveals hidden pieces in game state.
     /// State is advanced to 3 once both are revealed.
     /// Inactivity timer is set for opposing player on a succesful reveal.
@@ -251,9 +274,12 @@ pub mod autochess {
         let player_type = game.get_player_type(*ctx.accounts.invoker.key);
         let clock = &ctx.accounts.clock;
 
-        // if piece timer is not over, do not allow reveal.
-        if ctx.accounts.clock.unix_timestamp < game.piece_timer.unwrap() {
+        // Error if there is still time left, unless placing is disabled (meaning both players have locked in).
+        if ctx.accounts.clock.unix_timestamp < game.piece_timer.unwrap() && !game.placing_disabled {
             return Err(ErrorCode::TimeError.into());
+        }
+        if !game.placing_disabled {
+            game.placing_disabled = true;
         }
 
         // opposing player will be inactive 60 seconds after the first player's reveal
@@ -470,6 +496,18 @@ pub struct PlacePiece<'info> {
 }
 
 #[derive(Accounts)]
+pub struct LockIn<'info> {
+    #[account(
+        mut,
+        constraint = game.state == 2,
+        constraint = game.i_burner == *invoker.key || game.o_burner == *invoker.key,
+    )]
+    game: Account<'info, Game>,
+    invoker: Signer<'info>,
+    clock: Sysvar<'info, Clock>,
+}
+
+#[derive(Accounts)]
 pub struct RevealSecond<'info> {
     #[account(
         mut,
@@ -528,5 +566,7 @@ pub enum ErrorCode {
     #[msg("Error revealing commitment")]
     RevealError,
     #[msg("Error claiming victory")]
-    ClaimError
+    ClaimError,
+    #[msg("Error locking in pieces. Game state has changed.")]
+    LockInError,
 }

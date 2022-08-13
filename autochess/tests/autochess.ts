@@ -378,8 +378,17 @@ describe('autochess', async () => {
       assert.deepStrictEqual((accountRemove.entities.all as Array<any>).length, 5, 'piece was not deleted');
   })
 
-  it('reveal 2', (done) => {
-    setTimeout(async ()=>{
+  it('lock in', async () => {
+    let entityState = [126, 117, 109, 187, 73, 249, 153, 208, 162, 169, 117, 188, 194, 105, 202, 171, 142, 191, 184, 40, 154, 112, 156, 122, 195, 120, 248, 215, 221, 182, 45, 31];
+    await program.rpc.lockIn(entityState, {
+      accounts: {
+        game: gamePDAKey,
+        invoker: iBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [iBurner],
+    });
+    await assert.rejects(async () => {
       await program.rpc.revealSecond([...Buffer.from(initializerReveal2, 'hex')], [...Buffer.from(initializerSecret2, 'hex')], {
         accounts: {
           game: gamePDAKey,
@@ -388,17 +397,29 @@ describe('autochess', async () => {
         },
         signers: [iBurner]
       });
-      await assert.rejects(async () => {
-        await program.rpc.revealSecond([...Buffer.from(initializerReveal2, 'hex')], [...Buffer.from(initializerSecret2, 'hex')], {
-          accounts: {
-            game: gamePDAKey,
-            invoker: oBurner.publicKey,
-            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-          },
-          signers: [oBurner]
-        });
-      });
-      await program.rpc.revealSecond([...Buffer.from(opponentReveal2, 'hex')], [...Buffer.from(opponentSecret2, 'hex')], {
+    });
+    entityState = [196, 215, 169, 54, 109, 161, 52, 150, 235, 147, 129, 145, 126, 151, 161, 102, 101, 1, 232, 234, 234, 5, 161, 224, 41, 84, 167, 31, 82, 56, 211, 34];
+    await program.rpc.lockIn(entityState, {
+      accounts: {
+        game: gamePDAKey,
+        invoker: oBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [oBurner],
+    }); 
+  });
+
+  it('reveal 2', async () => {
+    await program.rpc.revealSecond([...Buffer.from(initializerReveal2, 'hex')], [...Buffer.from(initializerSecret2, 'hex')], {
+      accounts: {
+        game: gamePDAKey,
+        invoker: iBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [iBurner]
+    });
+    await assert.rejects(async () => {
+      await program.rpc.revealSecond([...Buffer.from(initializerReveal2, 'hex')], [...Buffer.from(initializerSecret2, 'hex')], {
         accounts: {
           game: gamePDAKey,
           invoker: oBurner.publicKey,
@@ -406,20 +427,27 @@ describe('autochess', async () => {
         },
         signers: [oBurner]
       });
-      const account = await program.account.game.fetch(gamePDAKey);
-      assert.deepStrictEqual(account.reveal2, [
-        107, 165,  64, 200,  92, 185, 127,
-        157,  83, 226, 151,  38,  72, 206,
-        255,  39, 127, 141, 243, 149, 183,
-        111, 147,  17, 153, 208,  94, 122,
-        173, 237, 221, 237
-      ], 'Incorrect reveal');
-      assert.deepStrictEqual(account.state, 3, 'Wrong state');
-      for (const entity of account.entities.all as Array<any>) {
-        assert(entity.unitType['hidden'] === undefined, "no hidden units left");
-      }
-      done();
-    }, 66 * 1000);
+    });
+    await program.rpc.revealSecond([...Buffer.from(opponentReveal2, 'hex')], [...Buffer.from(opponentSecret2, 'hex')], {
+      accounts: {
+        game: gamePDAKey,
+        invoker: oBurner.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [oBurner]
+    });
+    const account = await program.account.game.fetch(gamePDAKey);
+    assert.deepStrictEqual(account.reveal2, [
+      107, 165,  64, 200,  92, 185, 127,
+      157,  83, 226, 151,  38,  72, 206,
+      255,  39, 127, 141, 243, 149, 183,
+      111, 147,  17, 153, 208,  94, 122,
+      173, 237, 221, 237
+    ], 'Incorrect reveal');
+    assert.deepStrictEqual(account.state, 3, 'Wrong state');
+    for (const entity of account.entities.all as Array<any>) {
+      assert(entity.unitType['hidden'] === undefined, "no hidden units left");
+    }
   });
 
   it('crank', async ()=>{
