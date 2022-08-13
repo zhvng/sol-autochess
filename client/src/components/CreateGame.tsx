@@ -103,16 +103,15 @@ export const CreateGame: FC = () => {
             {/* {wallet && <p className="text-slate-300 text-xs">balance: {(balance || 0).toLocaleString()} sol</p>} */}
             <button
                 className="block mx-auto group mt-2 btn animate disabled:animate-none bg-slate-600"
-                onClick={onClick} disabled={!wallet || balance === 0}
+                onClick={onClick} disabled={!wallet || balance < wagerSize}
             >
                 <div className="hidden group-disabled:block ">
-                    {balance === 0 && wallet ? "Insufficient funds" : "Wallet not connected"}
+                    {balance < wagerSize && wallet ? "Insufficient funds" : "Wallet not connected"}
                 </div>
                 <span className="block group-disabled:hidden" > 
                     Create Game
                 </span>
             </button>
-            {balance === 0 && wallet && <RequestAirdrop></RequestAirdrop>}
             </div>
         </div>
     );

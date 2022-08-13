@@ -30,7 +30,7 @@ const Modal: ForwardRefRenderFunction<ModalHandle, ModalProps> = (props, ref) =>
     }
     return (
         <React.Fragment>
-            <div onClick={closeModal} className="bg-green-100/20 overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 w-full md:inset-0 h-modal m:h-full">
+            <div onClick={closeModal} className="bg-green-100/20 overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 w-full md:inset-0 h-modal h-full">
                 <div onClick={stopProp} className="mt-8 relative p-4 w-full max-w-2xl h-full md:h-auto mx-auto my-auto">
                     <div className="relative rounded-3xl shadow bg-black ">
                         <div className="flex justify-between items-start p-2 rounded-t">

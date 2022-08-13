@@ -4,6 +4,7 @@ import { CreateGame } from './CreateGame';
 import { PlusIcon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/solid';
 import useUserSOLBalanceStore from 'stores/useUserSOLBalanceStore';
 import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
+import { RequestAirdrop } from './RequestAirdrop';
 
 export const WalletProfileModule: FC = () => {
     const wallet = useAnchorWallet();
@@ -33,7 +34,10 @@ export const WalletProfileModule: FC = () => {
                             {wallet.publicKey.toBase58().slice(0, 6)}..{wallet.publicKey.toBase58().slice(-6)}
                             </div>
                             <div className='flex place-items-center font-mono'>
-                            Balance: {balance} sol
+                            Balance: {balance} sol 
+                                <div className='mx-8'>
+                                    {balance < 1 && wallet && <RequestAirdrop></RequestAirdrop>}
+                                </div>
                             </div>
                         </div>
                     }

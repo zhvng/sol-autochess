@@ -34,10 +34,10 @@ export const RequestAirdrop: FC = () => {
     return (
         <div>
             <button
-                className="block mx-auto group w-60 mt-2 btn animate disabled:animate-none bg-slate-600"
+                className="block group animate h-fit disabled:animate-none bg-slate-500 px-2 rounded"
                 onClick={onClick}
             >
-                <span>Get test sol</span>
+                <span>Airdrop</span>
             </button>
         </div>
     );
