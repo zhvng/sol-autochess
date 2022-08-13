@@ -28,17 +28,21 @@ export const WalletProfileModule: FC = () => {
         <React.Fragment>
             <div onClick={toggleCreateGame} className='w-full rounded-lg'>
                 <div className={`place-items-center ${!wallet && 'text-slate-600'}`}>
-                    {wallet && wallet.publicKey && 
-                        <div className="">
+                    {wallet && wallet.publicKey ? 
+                        <div>
                             <div className='flex place-items-center font-mono text-slate-400'>
                             {wallet.publicKey.toBase58().slice(0, 6)}..{wallet.publicKey.toBase58().slice(-6)}
                             </div>
                             <div className='flex place-items-center font-mono'>
-                            Balance: {balance} sol 
+                                Balance: {balance} sol 
                                 <div className='mx-8'>
                                     {balance < 1 && wallet && <RequestAirdrop></RequestAirdrop>}
                                 </div>
                             </div>
+                        </div>
+                        :
+                        <div className='flex place-items-center font-mono text-slate-400'>
+                            Wallet not connected
                         </div>
                     }
                 </div>
