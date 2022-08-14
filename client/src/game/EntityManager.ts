@@ -162,6 +162,9 @@ class EntityManager {
             throw new Error('incorrect params for entity creation');
         }
     }
+    public getEntitiesHash() {
+        return this.wasmController.getEntitiesHash();
+    }
     
     public updateOpponentHiddenPieces(allEntities: Array<any>, isInitializer: boolean) {
         const entitiesInPlay: Set<number> = new Set();

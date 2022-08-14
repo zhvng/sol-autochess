@@ -285,6 +285,37 @@
       ]
     },
     {
+      "name": "lockIn",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "invoker",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "entitiesHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "revealSecond",
       "accounts": [
         {
@@ -502,6 +533,18 @@
                 ]
               }
             }
+          },
+          {
+            "name": "iLockedIn",
+            "type": "bool"
+          },
+          {
+            "name": "oLockedIn",
+            "type": "bool"
+          },
+          {
+            "name": "placingDisabled",
+            "type": "bool"
           },
           {
             "name": "pieceTimer",
@@ -971,6 +1014,11 @@
       "code": 6002,
       "name": "ClaimError",
       "msg": "Error claiming victory"
+    },
+    {
+      "code": 6003,
+      "name": "LockInError",
+      "msg": "Error locking in pieces. Game state has changed."
     }
   ],
   "metadata": {

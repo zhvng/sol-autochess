@@ -663,6 +663,29 @@ class ContractController {
             return;
         }
     }
+    private async lockIn() {
+        console.log('sending lock in tx');
+        let signature = '';
+        try {
+            const entity_hash = this.entityManager.getEntitiesHash();
+            signature = await this.program.rpc.lockIn(
+                entity_hash, {
+                accounts: {
+                  game: this.gamePDAKey,
+                  invoker: this.program.provider.wallet.publicKey,
+                  clock: web3.SYSVAR_CLOCK_PUBKEY,
+                },
+                signers: [
+                    this.burnerWallet
+                ]
+            });
+            notify({ type: 'success', message: 'Transaction successful!', txid: signature });
+        } catch (error: any) {
+            notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });
+            console.log('error', `Transaction failed! ${error?.message}`, signature);
+            return;
+        }
+    }
 
     private async reveal1() {
         console.log('sending reveal1');

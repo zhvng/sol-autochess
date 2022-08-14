@@ -116,6 +116,10 @@ impl WasmState {
         let info = self.unit_map.get(&unit_type.convert()).unwrap();
         info.starting_health
     }
+
+    pub fn get_entities_hash(&self) -> JsValue {
+        JsValue::from_serde(&self.game.get_entities_hash()).unwrap()
+    }
 }
 
 #[wasm_bindgen]
