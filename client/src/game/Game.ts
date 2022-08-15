@@ -14,7 +14,7 @@ import { GameInputs } from "utils/gameInputs";
 import ContractController from "./ContractController";
 import { GameProgress } from "./Utils";
 import PiecePlacementManager from "./PiecePlacementManager";
-import Entity from "./Entity";
+import { UIController } from "pages/play/[id]";
 
 // const stats = Stats();
 // stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -34,7 +34,11 @@ class Game {
     private previousLogicFrame: DOMHighResTimeStamp | undefined = undefined; //ms
     private readonly logicUpdatePeriod = 200; //ms
 
-    constructor(gamePDAKey: PublicKey, program: Program, gameInputs: GameInputs) {
+    constructor(
+        gamePDAKey: PublicKey, 
+        program: Program, 
+        gameInputs: GameInputs, 
+        private readonly uiController: UIController) {
 
         this.renderer = new THREE.WebGLRenderer({
           antialias: true,
@@ -98,7 +102,14 @@ class Game {
     public async newGame(gamePDAKey, program, gameInputs) {
         this.wasmController = new WasmController();
         this.entityManager.attachWasmController(this.wasmController);
-        this.contractController = await ContractController.createContractController(this.scene, this.camera, gamePDAKey, program, gameInputs, this.entityManager);
+        this.contractController = await ContractController.createContractController(
+            this.scene, 
+            this.camera,
+            gamePDAKey, 
+            program, 
+            gameInputs, 
+            this.entityManager,
+            this.uiController);
         this.piecePlacementManager.attachNewContract(this.contractController);
     }
 

@@ -13,13 +13,12 @@ import BN from 'bn.js';
 import Game from "./Game";
 import { draw_private_hand, UnitTypeWasm } from "wasm-client";
 import EntityManager from "./EntityManager";
+import { UIComponent, UIController, UIReducerAction } from "pages/play/[id]";
 
 class ContractController {
     private _gameProgress: GameProgress;
     private interval: NodeJS.Timer;
     private waitingForPlayersObject?: CSS2DObject;
-    private waitingForRevealObject?: CSS2DObject;
-    private placePiecesObject?: CSS2DObject;
     private gameOverObject?: CSS2DObject;
     private timestamp?: number;
     private timer: CSS2DObject;
@@ -37,6 +36,7 @@ class ContractController {
         private readonly program: Program, 
         private readonly gameInputs: GameInputs,
         private readonly entityManager: EntityManager,
+        private readonly uiController: UIController,
     ) {
         this.gameProgress = GameProgress.WaitingForOpponent;
 
@@ -56,9 +56,14 @@ class ContractController {
         gamePDAKey: PublicKey, 
         program: Program, 
         gameInputs: GameInputs,
-        entityManager: EntityManager
+        entityManager: EntityManager,
+        uiController: UIController,
     ) {
-        const controller = new ContractController(scene, camera, gamePDAKey, program, gameInputs, entityManager);
+        const controller = new ContractController(
+            scene, 
+            camera, 
+            gamePDAKey, 
+            program, gameInputs, entityManager, uiController);
         await controller.initState();
         return controller;
     }
@@ -419,74 +424,46 @@ class ContractController {
             }
         }
 
+        const waitingForRevealShowing = this.uiController.uiState.get(UIComponent.WaitingForReveal).show;
         if (this.gameProgress === GameProgress.WaitingForOpponentReveal1 ||
             this.gameProgress === GameProgress.WaitingForOpponentReveal2) {
-            if (this.waitingForRevealObject === undefined) {
-                const waitingForRevealDiv = document.createElement('div');
-                waitingForRevealDiv.style.position = 'absolute';
-                waitingForRevealDiv.innerHTML=(`
-                    <div style="font-size:32px;color:white;">waiting for opponent to reveal </div>
-                `)
-                waitingForRevealDiv.style.textAlign ='center';
-                waitingForRevealDiv.style.width ='100%';
-                waitingForRevealDiv.style.backgroundColor ='rgba(220, 220, 220, 0.3)';
-                waitingForRevealDiv.style.padding ='10px';
-
-                const button = document.createElement('button');
-                button.addEventListener('pointerdown', ()=>{
-                    this.claimInactivity();
+            if (waitingForRevealShowing === false) {
+                this.uiController.dispatchUIChange({
+                    component: UIComponent.WaitingForReveal,
+                    newState: {
+                        show: true
+                    }
                 });
-                button.innerHTML="claim victory";
-                button.style.border = '2px solid green';
-                button.style.color = 'green';
-                button.style.fontSize = '18px';
-                button.style.padding = '5px';
-                button.style.marginTop = '10px';
-                button.style.display = 'none';
-                button.className = 'victoryButton';
-                waitingForRevealDiv.appendChild(button);
-
-                this.waitingForRevealObject = new CSS2DObject(waitingForRevealDiv)
-                this.waitingForRevealObject.position.setY(25);
-                this.scene.add(this.waitingForRevealObject);
-            } else {
-                this.waitingForRevealObject.visible = true;
-
-                const buttonElements = this.waitingForRevealObject.element.getElementsByClassName('victoryButton');
-                const buttonElement = buttonElements[0] as HTMLButtonElement;
-                
-                const timeRemaining = this.timeRemaining();
-                if (timeRemaining === undefined || timeRemaining !== 0) {
-                    buttonElement.style.display = 'none';
-                } else {
-                    buttonElement.style.display = 'inline';
-                }
             }
         } else {
-            if (this.waitingForRevealObject !== undefined) {
-                this.waitingForRevealObject.visible = false;
+            if (waitingForRevealShowing === true) {
+                this.uiController.dispatchUIChange({
+                    component: UIComponent.WaitingForReveal,
+                    newState: {
+                        show: false
+                    }
+                });
             }
         }
 
+        const placePiecesShowing = this.uiController.uiState.get(UIComponent.PlacePieces).show;
         if (this.gameProgress === GameProgress.PlacePieces) {
-            if (this.placePiecesObject === undefined) {
-                const placePiecesDiv = document.createElement('div');
-                placePiecesDiv.style.position = 'absolute';
-                placePiecesDiv.innerHTML=(`
-                    <div style="font-size:32px;color:white;">place (3) pieces</div>
-                `)
-                placePiecesDiv.style.textAlign ='center';
-                placePiecesDiv.style.width ='100%';
-                placePiecesDiv.style.backgroundColor ='rgba(220, 220, 220, 0.3)';
-                placePiecesDiv.style.padding ='10px';
-
-                this.placePiecesObject = new CSS2DObject(placePiecesDiv)
-                this.placePiecesObject.position.setY(25);
-                this.scene.add(this.placePiecesObject);
+            if (placePiecesShowing === false) {
+                this.uiController.dispatchUIChange({
+                    component: UIComponent.PlacePieces,
+                    newState: {
+                        show: true
+                    }
+                });
             }
         } else {
-            if (this.placePiecesObject !== undefined) {
-                this.placePiecesObject.visible = false;
+            if (placePiecesShowing === true) {
+                this.uiController.dispatchUIChange({
+                    component: UIComponent.PlacePieces,
+                    newState: {
+                        show: false
+                    }
+                });
             }
         }
         if (this.gameOverObject === undefined && !(this.entityManager.simulationStarted && !this.entityManager.simulationEnded) && (this.gameProgress === GameProgress.EndTie 

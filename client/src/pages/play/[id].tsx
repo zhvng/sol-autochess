@@ -1,6 +1,6 @@
 import { AppProps } from 'next/app';
 import Head from 'next/head';
-import { FC, useEffect, useRef } from 'react';
+import { Dispatch, FC, useEffect, useReducer, useRef } from 'react';
 import Game from 'game/Game';
 import { useRouter } from 'next/router'
 import init from 'wasm-client';
@@ -11,14 +11,59 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { getProgram } from 'utils/program';
 import { getGameInputs } from 'utils/gameInputs';
 import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
+import { PlacePiecesInfo } from 'components/GameUIComponents/PlacePiecesInfo';
+import { WaitingForRevealInfo } from 'components/GameUIComponents/WaitingForRevealInfo';
 
+export enum UIComponent {
+  PlacePieces,
+  WaitingForReveal,
+}
+
+export type UIComponentData = {
+  show: boolean,
+  info?: string
+}
+
+export type UIReducerAction = {
+  component: UIComponent,
+  newState: UIComponentData,
+}
+
+export type UIReducerState = Map<UIComponent, UIComponentData>;
+
+export type UIController = {
+  uiState: UIReducerState,
+  dispatchUIChange: Dispatch<UIReducerAction>
+}
+
+function UIReducer(state: UIReducerState, action: UIReducerAction) {
+  const newState = new Map(state);
+  newState.set(action.component, action.newState);
+  return newState;
+}
+
+const defaultUIState = new Map<UIComponent, UIComponentData>(
+  [
+    [UIComponent.PlacePieces, { show: false }],
+    [UIComponent.WaitingForReveal, { show: false }]
+  ]
+);
+
+const uiController: UIController = {
+  uiState: defaultUIState,
+  dispatchUIChange: () => {},
+}
 
 const Play = () => {
     const router = useRouter()
     const wallet = useAnchorWallet();
     const { connection } = useConnectionWrapper();
 
-    const { id } = router.query
+    const [uiState, dispatchUIChange] = useReducer(UIReducer, defaultUIState); 
+    uiController.uiState = uiState;
+    uiController.dispatchUIChange = dispatchUIChange;
+
+    const { id } = router.query;
     const mountRef = useRef(null);
     useEffect(() => {
       (async () => {
@@ -30,7 +75,7 @@ const Play = () => {
 
             await init();
             const gameInputs = getGameInputs(gamePDAKey, wallet.publicKey);
-            const game = new Game(gamePDAKey, program, gameInputs);
+            const game = new Game(gamePDAKey, program, gameInputs, uiController); 
             const canvas = game.getCanvasElement();
             const cssRenderer = game.getCSSRendererElement();
             if (mountRef.current !== null) {
@@ -58,11 +103,16 @@ const Play = () => {
           <div className='absolute right-0 w-500'>
             <WalletMultiButton className="btn btn-ghost mr-4" />
           </div>
+            
+          {uiState.get(UIComponent.PlacePieces).show && <PlacePiecesInfo />}
+          {uiState.get(UIComponent.WaitingForReveal).show && <WaitingForRevealInfo />}
+
           <div
             style={{ width: '100%', height: '100%', zIndex: 0}}
             ref={mountRef}
           />
 
+          
         </>
     );
 };
