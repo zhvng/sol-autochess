@@ -1,17 +1,4 @@
-import { Program, web3 } from "@project-serum/anchor";
-import { AnchorWallet, useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { Keypair, PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
-import TWEEN from "@tweenjs/tween.js";
-import useGameStateStore from "stores/useGameStateStore";
-import { Camera, QuadraticBezierCurve, Scene, Vector3 } from "three";
-import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer";
-import { clearGameInputs, GameInputs } from "utils/gameInputs";
-import { notify } from "utils/notifications";
-import { getProgram } from "utils/program";
 import { ControllerWasm, UnitTypeWasm, WasmState, draw_private_hand } from "wasm-client";
-import { GameProgress } from "./Utils";
-import BN from 'bn.js';
-import Game from "./Game";
 
 class WasmController {
     private wasmState: WasmState;
@@ -56,6 +43,16 @@ class WasmController {
         return this.wasmState.place_piece_with_id(id, x, y, unitType, controller);
     }
 
+    public calculateEntitiesHash(entities: Array<{
+        is_initializer: boolean, 
+        x: number, 
+        y: number, 
+        hand_position: number
+    }>) {
+        console.log('creating hidden');
+        return this.wasmState.calculate_entities_hash(entities);
+    }
+
     public step() {
         this.wasmState.step();
     }
@@ -75,9 +72,6 @@ class WasmController {
     }
     public getUnitStartingHealth(unitType: UnitTypeWasm) {
         return this.wasmState.get_unit_starting_health(unitType);
-    }
-    public getEntitiesHash(): [number] {
-        return this.wasmState.get_entities_hash();
     }
 }
 

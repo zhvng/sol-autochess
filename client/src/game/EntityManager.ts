@@ -162,8 +162,19 @@ class EntityManager {
             throw new Error('incorrect params for entity creation');
         }
     }
-    public getEntitiesHash() {
-        return this.wasmController.getEntitiesHash();
+    public calculateEntitiesHash(entities: Array<any>) {
+        const hiddenEntities = entities.map((entity) => {
+            const controller = parseControllerFromAnchor(entity.owner);
+            const handPosition = entity.unitType.hidden.handPosition;
+            return {
+                is_initializer: controller === ControllerWasm.Initializer, 
+                x: entity.position.x as number, 
+                y: entity.position.y as number, 
+                hand_position: handPosition as number
+            }
+        });
+        console.log(hiddenEntities);
+        return this.wasmController.calculateEntitiesHash(hiddenEntities);
     }
     
     public updateOpponentHiddenPieces(allEntities: Array<any>, isInitializer: boolean) {

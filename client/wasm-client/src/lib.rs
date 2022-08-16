@@ -1,8 +1,10 @@
 extern crate autochess;
+mod utils;
 
 use std::{collections::{BTreeMap}, convert::TryInto};
 
 use wasm_bindgen::prelude::*;
+use serde;
 
 use autochess::state::{game::Game, game::draw_hand, units::{self, UnitType, Unit}, entities::Controller};
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
@@ -46,6 +48,7 @@ impl UnitTypeWasm {
 }
 
 #[wasm_bindgen]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum ControllerWasm {
     Initializer,
     Opponent,
@@ -63,10 +66,19 @@ impl ControllerWasm {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct HiddenUnit {
+    x: u16, 
+    y: u16, 
+    is_initializer: bool, 
+    hand_position: u8
+}
+
 #[wasm_bindgen]
 impl WasmState {
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmState {
+        utils::set_panic_hook();
         let game = Game::new_client();
         let unit_map = units::get_unit_map();
 
@@ -84,6 +96,20 @@ impl WasmState {
     pub fn place_piece_with_id(&mut self, id: u16, x:u16, y: u16, unit_type: UnitTypeWasm, player_type: ControllerWasm) -> u16 {
         let placed = self.game.place_piece_with_id(id, player_type.convert(), x, y, unit_type.convert());
         return placed.unwrap();
+    }
+
+    pub fn calculate_entities_hash(&mut self, entities: &JsValue) -> JsValue {
+        let elements: Vec<HiddenUnit> = entities.into_serde().unwrap();
+        let mut new_game = Game::new_client();
+        for entity in elements {
+            let player_type = if entity.is_initializer {
+                Controller::Initializer
+            } else {
+                Controller::Opponent
+            };
+            new_game.entities.create_hidden(player_type, entity.x, entity.y, entity.hand_position);
+        }
+        return JsValue::from_serde(&new_game.get_entities_hash()).unwrap();
     }
 
     pub fn step(&mut self) {
@@ -115,10 +141,6 @@ impl WasmState {
     pub fn get_unit_starting_health(&mut self, unit_type: UnitTypeWasm) -> u16 {
         let info = self.unit_map.get(&unit_type.convert()).unwrap();
         info.starting_health
-    }
-
-    pub fn get_entities_hash(&self) -> JsValue {
-        JsValue::from_serde(&self.game.get_entities_hash()).unwrap()
     }
 }
 

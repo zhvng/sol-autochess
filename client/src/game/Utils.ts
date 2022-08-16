@@ -49,7 +49,7 @@ export const parseUnitTypeFromAnchor = (unitType: any): UnitTypeWasm | 'hidden' 
 
     throw new Error('should never get here');
 }
-export const parseControllerFromAnchor = (controller: String): ControllerWasm => {
+export const parseControllerFromAnchor = (controller: any): ControllerWasm => {
     if(controller['initializer'] !== undefined) return ControllerWasm.Initializer;
     if(controller['opponent'] !== undefined) return ControllerWasm.Opponent;
     if(controller['graveyard'] !== undefined) return ControllerWasm.Graveyard;

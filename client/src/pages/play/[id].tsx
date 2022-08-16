@@ -13,20 +13,23 @@ import { getGameInputs } from 'utils/gameInputs';
 import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
 import { PlacePiecesInfo } from 'components/GameUIComponents/PlacePiecesInfo';
 import { WaitingForRevealInfo } from 'components/GameUIComponents/WaitingForRevealInfo';
+import { LockInButton } from 'components/GameUIComponents/LockInButton';
 
 export enum UIComponent {
   PlacePieces,
   WaitingForReveal,
+  LockInButton
 }
 
 export type UIComponentData = {
   show: boolean,
-  info?: string
+  info?: string,
+  onClick?: () => void,
+  disabled?: boolean,
 }
 
 export type UIReducerAction = {
-  component: UIComponent,
-  newState: UIComponentData,
+  changes: Map<UIComponent, UIComponentData>,
 }
 
 export type UIReducerState = Map<UIComponent, UIComponentData>;
@@ -38,14 +41,17 @@ export type UIController = {
 
 function UIReducer(state: UIReducerState, action: UIReducerAction) {
   const newState = new Map(state);
-  newState.set(action.component, action.newState);
+  for (const key of action.changes.keys()) {
+    newState.set(key, action.changes.get(key));
+  }
   return newState;
 }
 
 const defaultUIState = new Map<UIComponent, UIComponentData>(
   [
     [UIComponent.PlacePieces, { show: false }],
-    [UIComponent.WaitingForReveal, { show: false }]
+    [UIComponent.WaitingForReveal, { show: false }],
+    [UIComponent.LockInButton, { show: false }],
   ]
 );
 
@@ -106,6 +112,7 @@ const Play = () => {
             
           {uiState.get(UIComponent.PlacePieces).show && <PlacePiecesInfo />}
           {uiState.get(UIComponent.WaitingForReveal).show && <WaitingForRevealInfo />}
+          {uiState.get(UIComponent.LockInButton).show && <LockInButton {...uiState.get(UIComponent.LockInButton)} />}
 
           <div
             style={{ width: '100%', height: '100%', zIndex: 0}}

@@ -4,7 +4,7 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "build-wasm": "cd wasm-client && wasm-pack build --target web -d ./pkg && sed -i '' 's/export function init/export function initWasm/g' ./pkg/wasm_client.js ",
+    "build-wasm": "cd wasm-client && npx wasm-pack build --target web -d ./pkg && sed -i '' 's/export function init/export function initWasm/g' ./pkg/wasm_client.js ",
     "local": "NEXT_PUBLIC_CLIENT_MODE=local next dev",
     "dev": "NEXT_PUBLIC_CLIENT_MODE=dev next dev",
     "build": "NEXT_PUBLIC_CLIENT_MODE=production && npm run build-wasm && next build",
@@ -33,6 +33,7 @@
     "three": "^0.138.3",
     "uuid": "^8.3.2",
     "wasm-client": "file:./wasm-client/pkg",
+    "wasm-pack": "^0.10.3",
     "zustand": "^3.6.9"
   },
   "devDependencies": {

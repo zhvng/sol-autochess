@@ -445,8 +445,6 @@ impl Game {
                 to_hash.extend_from_slice(&entity.position.y.to_le_bytes());
             }
         }
-        to_hash.push(self.i_locked_in as u8);
-        to_hash.push(self.o_locked_in as u8);
         return hash(&to_hash).to_bytes();
     }
 }
@@ -496,15 +494,15 @@ mod tests {
     fn get_entities_hash_test_empty() {
         let test_game = Game::new_client();
         let hash = test_game.get_entities_hash();
-        assert_eq!(hash, [150, 162, 150, 210, 36, 242, 133, 198, 123, 238, 147, 195, 15, 138, 48, 145, 87, 240, 218, 163, 93, 197, 184, 126, 65, 11, 120, 99, 10, 9, 207, 199]);
+        assert_eq!(hash, [227, 176, 196, 66, 152, 252, 28, 20, 154, 251, 244, 200, 153, 111, 185, 36, 39, 174, 65, 228, 100, 155, 147, 76, 164, 149, 153, 27, 120, 82, 184, 85]);
     }
     #[test]
     fn get_entities_hash_test_changes() {
         let mut test_game = Game::new_client();
         let hash = test_game.get_entities_hash();
-        test_game.lock_in_player(entities::Controller::Initializer).ok();
+        test_game.place_piece_hidden(entities::Controller::Initializer, 5, 2, 2);
         let changed_hash = test_game.get_entities_hash();
-        assert_ne!(hash, changed_hash, "Hash didn't change when player locked in");
+        assert_ne!(hash, changed_hash, "Hash should change when board state changes");
     }
 
     #[test]

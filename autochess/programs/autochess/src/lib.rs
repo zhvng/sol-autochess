@@ -251,6 +251,7 @@ pub mod autochess {
 
         let player_type = game.get_player_type(*ctx.accounts.invoker.key);
         let current_entities_hash = game.get_entities_hash();
+        msg!("{:?}", current_entities_hash);
 
         if entities_hash != current_entities_hash {
             return Err(ErrorCode::LockInError.into());

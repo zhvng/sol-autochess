@@ -379,7 +379,7 @@ describe('autochess', async () => {
   })
 
   it('lock in', async () => {
-    let entityState = [126, 117, 109, 187, 73, 249, 153, 208, 162, 169, 117, 188, 194, 105, 202, 171, 142, 191, 184, 40, 154, 112, 156, 122, 195, 120, 248, 215, 221, 182, 45, 31];
+    let entityState = [108, 192, 209, 135, 85, 189, 0, 245, 33, 32, 65, 131, 195, 24, 29, 53, 31, 195, 200, 59, 25, 47, 47, 110, 34, 128, 165, 77, 47, 28, 187, 174]; 
     await program.rpc.lockIn(entityState, {
       accounts: {
         game: gamePDAKey,
@@ -398,7 +398,6 @@ describe('autochess', async () => {
         signers: [iBurner]
       });
     });
-    entityState = [196, 215, 169, 54, 109, 161, 52, 150, 235, 147, 129, 145, 126, 151, 161, 102, 101, 1, 232, 234, 234, 5, 161, 224, 41, 84, 167, 31, 82, 56, 211, 34];
     await program.rpc.lockIn(entityState, {
       accounts: {
         game: gamePDAKey,

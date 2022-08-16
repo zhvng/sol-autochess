@@ -179,6 +179,7 @@ class ContractController {
 
     private async updateState() {
         console.log('progress:', this.gameProgress.toString(), ', txcount:', this.txCount);
+        this.draw();
         try {
             switch (this.gameProgress) {
                 case GameProgress.WaitingForOpponent:
@@ -229,7 +230,8 @@ class ContractController {
                     this.entityManager.updateOpponentHiddenPieces(this.lastGameState.entities.all, this.isInitializer);
                     // check timer , if timer is over reveal2
                     this.timestamp = (this.lastGameState.pieceTimer as BN).toNumber();
-                    if (this.timeRemaining() === 0) {
+                    const bothPlayersLocked = this.lastGameState.iLockedIn && this.lastGameState.oLockedIn;
+                    if (this.timeRemaining() === 0 || bothPlayersLocked) {
                         this.gameProgress = GameProgress.Reveal2;
                         setTimeout(()=>this.updateState(), 500);
                         return;
@@ -267,6 +269,9 @@ class ContractController {
                             Uint8Array.from(this.lastGameState.reveal2),
                         );
                         this.gameProgress = GameProgress.InProgress;
+
+                        setTimeout(()=>this.updateState(), 15000);
+                        return;
                     }
                     break;
                 case GameProgress.InProgress:
@@ -341,8 +346,9 @@ class ContractController {
             console.log('error', `Error! ${error?.message}`);
             console.log(error);
         }
-        setTimeout(()=>this.updateState(), 5000);
-        this.draw()
+        setTimeout(()=>{
+            this.updateState();
+        }, 3000);
     }
 
     private async drawError() {
@@ -429,40 +435,45 @@ class ContractController {
             this.gameProgress === GameProgress.WaitingForOpponentReveal2) {
             if (waitingForRevealShowing === false) {
                 this.uiController.dispatchUIChange({
-                    component: UIComponent.WaitingForReveal,
-                    newState: {
-                        show: true
-                    }
+                    changes: new Map([
+                        [UIComponent.WaitingForReveal, {show: true}]
+                    ])
                 });
             }
         } else {
             if (waitingForRevealShowing === true) {
                 this.uiController.dispatchUIChange({
-                    component: UIComponent.WaitingForReveal,
-                    newState: {
-                        show: false
-                    }
+                    changes: new Map([
+                        [UIComponent.WaitingForReveal, {show: false}]
+                    ])
                 });
             }
         }
 
         const placePiecesShowing = this.uiController.uiState.get(UIComponent.PlacePieces).show;
         if (this.gameProgress === GameProgress.PlacePieces) {
-            if (placePiecesShowing === false) {
+            const isLockedIn = this.uiController.uiState.get(UIComponent.LockInButton).disabled;
+            if (placePiecesShowing === false || isLockedIn !== this.getLockedIn()) {
+                
                 this.uiController.dispatchUIChange({
-                    component: UIComponent.PlacePieces,
-                    newState: {
-                        show: true
-                    }
+                    changes: new Map([
+                        [UIComponent.PlacePieces, {show: true}],
+                        [UIComponent.LockInButton, {show: true, disabled: this.getLockedIn(), onClick: async ()=>{
+                            this.uiController.dispatchUIChange({
+                                changes: new Map([[UIComponent.LockInButton, {show: true, disabled: true, onClick: ()=>{}}]])
+                            });
+                            await this.lockIn();
+                        }}]
+                    ])
                 });
             }
         } else {
             if (placePiecesShowing === true) {
                 this.uiController.dispatchUIChange({
-                    component: UIComponent.PlacePieces,
-                    newState: {
-                        show: false
-                    }
+                    changes: new Map([
+                        [UIComponent.PlacePieces, {show: false}],
+                        [UIComponent.LockInButton, {show: false}] 
+                    ])
                 });
             }
         }
@@ -641,27 +652,37 @@ class ContractController {
         }
     }
     private async lockIn() {
-        console.log('sending lock in tx');
         let signature = '';
         try {
-            const entity_hash = this.entityManager.getEntitiesHash();
-            signature = await this.program.rpc.lockIn(
+            const entity_hash = this.entityManager.calculateEntitiesHash(this.lastGameState.entities.all);
+            console.log(entity_hash);
+            const tx = this.program.transaction.lockIn(
                 entity_hash, {
                 accounts: {
                   game: this.gamePDAKey,
-                  invoker: this.program.provider.wallet.publicKey,
+                  invoker: this.burnerWallet.publicKey,
                   clock: web3.SYSVAR_CLOCK_PUBKEY,
                 },
                 signers: [
                     this.burnerWallet
                 ]
             });
+            signature = await web3.sendAndConfirmTransaction(this.program.provider.connection, tx, [
+                this.burnerWallet
+            ]);
             notify({ type: 'success', message: 'Transaction successful!', txid: signature });
         } catch (error: any) {
+            console.log(error);
             notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });
             console.log('error', `Transaction failed! ${error?.message}`, signature);
             return;
         }
+    }
+
+    private getLockedIn() {
+        if (this.isInitializer && this.lastGameState.iLockedIn) return true;
+        if (!this.isInitializer && this.lastGameState.oLockedIn) return true;
+        return false;
     }
 
     private async reveal1() {
