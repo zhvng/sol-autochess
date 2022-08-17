@@ -14,10 +14,12 @@ import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
 import { PlacePiecesInfo } from 'components/GameUIComponents/PlacePiecesInfo';
 import { WaitingForRevealInfo } from 'components/GameUIComponents/WaitingForRevealInfo';
 import { LockInButton } from 'components/GameUIComponents/LockInButton';
+import { ClaimInactivityButton } from 'components/GameUIComponents/ClaimInactivityButton';
 
 export enum UIComponent {
   PlacePieces,
   WaitingForReveal,
+  ClaimInactivityButton,
   LockInButton
 }
 
@@ -51,6 +53,7 @@ const defaultUIState = new Map<UIComponent, UIComponentData>(
   [
     [UIComponent.PlacePieces, { show: false }],
     [UIComponent.WaitingForReveal, { show: false }],
+    [UIComponent.ClaimInactivityButton, { show: false }],
     [UIComponent.LockInButton, { show: false }],
   ]
 );
@@ -112,14 +115,13 @@ const Play = () => {
             
           {uiState.get(UIComponent.PlacePieces).show && <PlacePiecesInfo />}
           {uiState.get(UIComponent.WaitingForReveal).show && <WaitingForRevealInfo />}
+          {uiState.get(UIComponent.ClaimInactivityButton).show && <ClaimInactivityButton {...uiState.get(UIComponent.ClaimInactivityButton)} />}
           {uiState.get(UIComponent.LockInButton).show && <LockInButton {...uiState.get(UIComponent.LockInButton)} />}
 
           <div
             style={{ width: '100%', height: '100%', zIndex: 0}}
             ref={mountRef}
           />
-
-          
         </>
     );
 };

@@ -431,6 +431,7 @@ class ContractController {
         }
 
         const waitingForRevealShowing = this.uiController.uiState.get(UIComponent.WaitingForReveal).show;
+        const claimInactivityShowing = this.uiController.uiState.get(UIComponent.ClaimInactivityButton).show; 
         if (this.gameProgress === GameProgress.WaitingForOpponentReveal1 ||
             this.gameProgress === GameProgress.WaitingForOpponentReveal2) {
             if (waitingForRevealShowing === false) {
@@ -440,11 +441,21 @@ class ContractController {
                     ])
                 });
             }
+            const timeRemaining = this.timeRemaining();
+            if (timeRemaining !== undefined && timeRemaining === 0) {
+                if (claimInactivityShowing === false)
+                    this.uiController.dispatchUIChange({
+                        changes: new Map([
+                            [UIComponent.ClaimInactivityButton, {show: true, onClick: ()=>{this.claimInactivity()}}]
+                        ])
+                    });
+            }
         } else {
-            if (waitingForRevealShowing === true) {
+            if (waitingForRevealShowing === true || claimInactivityShowing === true) {
                 this.uiController.dispatchUIChange({
                     changes: new Map([
-                        [UIComponent.WaitingForReveal, {show: false}]
+                        [UIComponent.WaitingForReveal, {show: false}],
+                        [UIComponent.ClaimInactivityButton, {show: false}]
                     ])
                 });
             }
@@ -453,19 +464,23 @@ class ContractController {
         const placePiecesShowing = this.uiController.uiState.get(UIComponent.PlacePieces).show;
         if (this.gameProgress === GameProgress.PlacePieces) {
             const isLockedIn = this.uiController.uiState.get(UIComponent.LockInButton).disabled;
-            if (placePiecesShowing === false || isLockedIn !== this.getLockedIn()) {
-                
+            if (placePiecesShowing === false) {
                 this.uiController.dispatchUIChange({
                     changes: new Map([
                         [UIComponent.PlacePieces, {show: true}],
-                        [UIComponent.LockInButton, {show: true, disabled: this.getLockedIn(), onClick: async ()=>{
-                            this.uiController.dispatchUIChange({
-                                changes: new Map([[UIComponent.LockInButton, {show: true, disabled: true, onClick: ()=>{}}]])
-                            });
-                            await this.lockIn();
-                        }}]
                     ])
                 });
+            }
+            if (isLockedIn !== this.getLockedIn()) {
+                const lockInClick = async ()=>{
+                    this.uiController.dispatchUIChange({
+                        changes: new Map([[UIComponent.LockInButton, {show: false}]])
+                    }) 
+                    await this.lockIn();
+                }
+                this.uiController.dispatchUIChange({
+                    changes: new Map([[UIComponent.LockInButton, {show: true, disabled: this.getLockedIn(), onClick: lockInClick}]])
+                }) 
             }
         } else {
             if (placePiecesShowing === true) {
