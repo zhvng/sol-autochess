@@ -98,20 +98,6 @@ impl WasmState {
         return placed.unwrap();
     }
 
-    pub fn calculate_entities_hash(&mut self, entities: &JsValue) -> JsValue {
-        let elements: Vec<HiddenUnit> = entities.into_serde().unwrap();
-        let mut new_game = Game::new_client();
-        for entity in elements {
-            let player_type = if entity.is_initializer {
-                Controller::Initializer
-            } else {
-                Controller::Opponent
-            };
-            new_game.entities.create_hidden(player_type, entity.x, entity.y, entity.hand_position);
-        }
-        return JsValue::from_serde(&new_game.get_entities_hash()).unwrap();
-    }
-
     pub fn step(&mut self) {
         self.game.step(&self.unit_map);
     }

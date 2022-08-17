@@ -379,8 +379,7 @@ describe('autochess', async () => {
   })
 
   it('lock in', async () => {
-    let entityState = [108, 192, 209, 135, 85, 189, 0, 245, 33, 32, 65, 131, 195, 24, 29, 53, 31, 195, 200, 59, 25, 47, 47, 110, 34, 128, 165, 77, 47, 28, 187, 174]; 
-    await program.rpc.lockIn(entityState, {
+    await program.rpc.lockIn({
       accounts: {
         game: gamePDAKey,
         invoker: iBurner.publicKey,
@@ -398,7 +397,7 @@ describe('autochess', async () => {
         signers: [iBurner]
       });
     });
-    await program.rpc.lockIn(entityState, {
+    await program.rpc.lockIn({
       accounts: {
         game: gamePDAKey,
         invoker: oBurner.publicKey,

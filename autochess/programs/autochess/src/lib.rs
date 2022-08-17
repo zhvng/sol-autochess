@@ -240,9 +240,7 @@ pub mod autochess {
     }
 
     /// state = 2. Player locks in their piece placement with the goal of fast forwarding to the second reveal.
-    /// Lock in lasts until opposing player places a piece or locks in themself.
-    /// To prevent frontrunning, we compare the hash of the state of the board to the intended state before locking in.
-    pub fn lock_in(ctx: Context<LockIn>, entities_hash: [u8; 32]) -> ProgramResult {
+    pub fn lock_in(ctx: Context<LockIn>) -> ProgramResult {
         let game = &mut ctx.accounts.game;
 
         if game.placing_disabled {
@@ -250,12 +248,7 @@ pub mod autochess {
         }
 
         let player_type = game.get_player_type(*ctx.accounts.invoker.key);
-        let current_entities_hash = game.get_entities_hash();
-        msg!("{:?}", current_entities_hash);
-
-        if entities_hash != current_entities_hash {
-            return Err(ErrorCode::LockInError.into());
-        }
+        
         match game.lock_in_player(player_type) {
             Ok(_) => {
                 if game.both_players_locked() {

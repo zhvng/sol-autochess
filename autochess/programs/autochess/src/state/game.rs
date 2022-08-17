@@ -200,7 +200,6 @@ impl Game {
             }
             // Finally, place the piece
             let id = self.entities.create_hidden(player, x, y, hand_position);
-            self.unlock_players();
             return Some(id);
         } else {
             return None;
@@ -223,7 +222,6 @@ impl Game {
                 return None;
             }
 
-            self.unlock_players();
             // Move if we find the hand position, otherwise fail
             for entity in &mut self.entities.all {
                 if entity.owner == player {
@@ -262,7 +260,6 @@ impl Game {
                         if hand_position_compare == hand_position {
                             // This piece has already been placed. Remove it.
                             self.entities.remove_by_id(entity.id);
-                            self.unlock_players();
                             return Some(entity.id);
                         }
                     }
@@ -422,30 +419,8 @@ impl Game {
         Ok(())
     }
 
-    /// Called whenever entities is changed
-    pub fn unlock_players(&mut self) {
-        if self.i_locked_in || self.o_locked_in {
-            self.i_locked_in = false;
-            self.o_locked_in = false;
-        }
-    }
-
     pub fn both_players_locked(&self) -> bool {
         self.i_locked_in && self.o_locked_in
-    }
-    
-    /// Get a hash representing the current positions of all entities.
-    pub fn get_entities_hash(&self) -> [u8; 32] {
-        let mut to_hash: Vec<u8> = Vec::new();
-        for entity in &self.entities.all {
-            if let units::UnitType::Hidden{hand_position} = entity.unit_type {
-                to_hash.push(hand_position);
-                to_hash.push(entity.owner as u8);
-                to_hash.extend_from_slice(&entity.position.x.to_le_bytes());
-                to_hash.extend_from_slice(&entity.position.y.to_le_bytes());
-            }
-        }
-        return hash(&to_hash).to_bytes();
     }
 }
 
@@ -491,28 +466,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn get_entities_hash_test_empty() {
-        let test_game = Game::new_client();
-        let hash = test_game.get_entities_hash();
-        assert_eq!(hash, [227, 176, 196, 66, 152, 252, 28, 20, 154, 251, 244, 200, 153, 111, 185, 36, 39, 174, 65, 228, 100, 155, 147, 76, 164, 149, 153, 27, 120, 82, 184, 85]);
-    }
-    #[test]
-    fn get_entities_hash_test_changes() {
-        let mut test_game = Game::new_client();
-        let hash = test_game.get_entities_hash();
-        test_game.place_piece_hidden(entities::Controller::Initializer, 5, 2, 2);
-        let changed_hash = test_game.get_entities_hash();
-        assert_ne!(hash, changed_hash, "Hash should change when board state changes");
-    }
-
-    #[test]
     fn lock_in_test() {
         let mut test_game = Game::new_client();
         assert!(!test_game.i_locked_in && !test_game.i_locked_in, "Initial state");
-        test_game.lock_in_player(entities::Controller::Initializer).ok();
-        assert!(test_game.i_locked_in && !test_game.o_locked_in, "Initializer locked in");
-        test_game.unlock_players();
-        assert!(!test_game.i_locked_in && !test_game.i_locked_in, "Both unlocked"); 
         test_game.lock_in_player(entities::Controller::Initializer).ok(); 
         test_game.lock_in_player(entities::Controller::Opponent).ok();
         assert!(test_game.both_players_locked()); 

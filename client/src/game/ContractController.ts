@@ -26,6 +26,7 @@ class ContractController {
     private lastGameState?;
     private _hand?: Array<UnitTypeWasm>;
     private txCount: number = 0;
+    private lockedIn: boolean = false;
 
     private burnerWallet: Keypair;
 
@@ -230,6 +231,7 @@ class ContractController {
                     this.entityManager.updateOpponentHiddenPieces(this.lastGameState.entities.all, this.isInitializer);
                     // check timer , if timer is over reveal2
                     this.timestamp = (this.lastGameState.pieceTimer as BN).toNumber();
+                    this.lockedIn = this.getLockedIn();
                     const bothPlayersLocked = this.lastGameState.iLockedIn && this.lastGameState.oLockedIn;
                     if (this.timeRemaining() === 0 || bothPlayersLocked) {
                         this.gameProgress = GameProgress.Reveal2;
@@ -463,23 +465,28 @@ class ContractController {
 
         const placePiecesShowing = this.uiController.uiState.get(UIComponent.PlacePieces).show;
         if (this.gameProgress === GameProgress.PlacePieces) {
-            const isLockedIn = this.uiController.uiState.get(UIComponent.LockInButton).disabled;
             if (placePiecesShowing === false) {
+                const lockInOnClick = async ()=>{
+                    const success = await this.lockIn();
+                    if (success) {
+                        this.uiController.dispatchUIChange({
+                            changes: new Map([[UIComponent.LockInButton, {show: true, disabled: true, onClick: ()=>{}}]])
+                        });
+                        this.lockedIn = true;
+                    }
+                }
                 this.uiController.dispatchUIChange({
                     changes: new Map([
                         [UIComponent.PlacePieces, {show: true}],
+                        [UIComponent.LockInButton, {show: true, disabled: this.lockedIn, onClick: lockInOnClick}]
                     ])
                 });
             }
-            if (isLockedIn !== this.getLockedIn()) {
-                const lockInClick = async ()=>{
-                    this.uiController.dispatchUIChange({
-                        changes: new Map([[UIComponent.LockInButton, {show: false}]])
-                    }) 
-                    await this.lockIn();
-                }
+            if (this.uiController.uiState.get(UIComponent.LockInButton).disabled === false &&
+                this.lockedIn === true) {
+                
                 this.uiController.dispatchUIChange({
-                    changes: new Map([[UIComponent.LockInButton, {show: true, disabled: this.getLockedIn(), onClick: lockInClick}]])
+                    changes: new Map([[UIComponent.LockInButton, {show: true, disabled: true, onClick: ()=>{}}]])
                 }) 
             }
         } else {
@@ -666,13 +673,10 @@ class ContractController {
             return;
         }
     }
-    private async lockIn() {
+    private async lockIn(): Promise<boolean> {
         let signature = '';
         try {
-            const entity_hash = this.entityManager.calculateEntitiesHash(this.lastGameState.entities.all);
-            console.log(entity_hash);
-            const tx = this.program.transaction.lockIn(
-                entity_hash, {
+            const tx = this.program.transaction.lockIn({
                 accounts: {
                   game: this.gamePDAKey,
                   invoker: this.burnerWallet.publicKey,
@@ -686,11 +690,12 @@ class ContractController {
                 this.burnerWallet
             ]);
             notify({ type: 'success', message: 'Transaction successful!', txid: signature });
+            return true;
         } catch (error: any) {
             console.log(error);
             notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });
             console.log('error', `Transaction failed! ${error?.message}`, signature);
-            return;
+            return false;
         }
     }
 

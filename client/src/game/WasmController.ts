@@ -41,17 +41,7 @@ class WasmController {
     public placePieceWithId(id: number, x: number, y: number, unitType: UnitTypeWasm, controller: ControllerWasm) {
         console.log('placing piece')
         return this.wasmState.place_piece_with_id(id, x, y, unitType, controller);
-    }
-
-    public calculateEntitiesHash(entities: Array<{
-        is_initializer: boolean, 
-        x: number, 
-        y: number, 
-        hand_position: number
-    }>) {
-        console.log('creating hidden');
-        return this.wasmState.calculate_entities_hash(entities);
-    }
+    } 
 
     public step() {
         this.wasmState.step();

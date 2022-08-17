@@ -303,17 +303,7 @@
           "isSigner": false
         }
       ],
-      "args": [
-        {
-          "name": "entitiesHash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        }
-      ]
+      "args": []
     },
     {
       "name": "revealSecond",
