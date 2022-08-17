@@ -128,10 +128,10 @@ class ContractController {
             }
 
             let x = 50, y = 45
-            if (innerWidth < 500) {
+            if (innerHeight > innerWidth) {
                 // zoom out on mobile devices
-                x = x * 1.7
-                y = y * 1.7
+                x = x * 1.6
+                y = y * 1.6
             }
             if (this.isInitializer) {
                 this.camera.position.set(0, x, y);

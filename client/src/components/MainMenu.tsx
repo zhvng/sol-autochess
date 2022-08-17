@@ -1,8 +1,5 @@
-import { useAnchorWallet } from '@solana/wallet-adapter-react';
-import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
 import { useRouter } from 'next/router';
 import React, { FC, useEffect, useRef } from 'react';
-import useUserSOLBalanceStore from 'stores/useUserSOLBalanceStore';
 import { CreateGame } from './CreateGame';
 import { CreateGameButton } from './CreateGameButton';
 import GameList from './GameList';
@@ -27,8 +24,6 @@ export const MainMenu: FC = () => {
                 <div className='flex-fit'>
                         <CreateGameButton></CreateGameButton>
                     </div>
-                
-                
                 <GameList></GameList>
             </Modal>
             {/* <MenuButton onClick={()=>{setShowJoinGame(!showJoinGame)}} disabled={false} color='red'>Join Game</MenuButton>
