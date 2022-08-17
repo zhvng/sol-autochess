@@ -127,13 +127,18 @@ class ContractController {
                 throw new Error('you are not a player in this game');
             }
 
-            if (this.isInitializer) {
-                this.camera.position.set(0, 50, 45);
-                // this.camera.lookAt(new Vector3(0,0,0));
-            } else {
-                this.camera.position.set(0, 50, -45);
-                this.camera.lookAt(new Vector3(0,0,0));
+            let x = 50, y = 45
+            if (innerWidth < 500) {
+                // zoom out on mobile devices
+                x = x * 1.7
+                y = y * 1.7
             }
+            if (this.isInitializer) {
+                this.camera.position.set(0, x, y);
+            } else {
+                this.camera.position.set(0, x, -y);
+            }
+            this.camera.lookAt(new Vector3(0,0,0));
 
             if (account.state === 1) {
                 if (this.isInitializer && account.iHasRevealed || !this.isInitializer && account.oHasRevealed) {

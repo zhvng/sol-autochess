@@ -45,22 +45,34 @@ class PiecePlacementManager {
         this.mouse = new Vector2(1,1);
 
         window.addEventListener('mousemove', (event: MouseEvent)=>{
-            this.mousemove(event);
+            this.mousemove(event.clientX, event.clientY);
         });
+        window.addEventListener('touchmove', (event: TouchEvent)=>{
+            this.mousemove(event.touches[0].clientX, event.touches[0].clientY);
+        });
+        
         window.addEventListener('mouseup', (event: MouseEvent)=>{
-            this.mouseup(event);
+            this.mouseup();
         });
+        window.addEventListener('touchend', (event: MouseEvent)=>{
+            this.mouseup();
+        });
+
         window.addEventListener('mousedown', (event: MouseEvent)=>{
-            this.mousedown(event);
+            this.mousedown();
         });
+        window.addEventListener('touchstart', (event: MouseEvent)=>{
+            this.mousedown();
+        });
+
     }
 
-    public mousemove(event: MouseEvent){
+    public mousemove(clientX: number, clientY: number){
         if (this.mouse === undefined) {
             this.mouse = new Vector2(1, 1);
         }
-    	this.mouse.setX(event.clientX / window.innerWidth * 2 - 1);
-    	this.mouse.setY(- event.clientY / window.innerHeight * 2 + 1);
+    	this.mouse.setX(clientX / window.innerWidth * 2 - 1);
+    	this.mouse.setY(- clientY / window.innerHeight * 2 + 1);
 
         if (this.raycaster !== undefined) {
             this.raycaster.setFromCamera(this.mouse, this.camera);
@@ -83,7 +95,7 @@ class PiecePlacementManager {
             }
         }
     }
-    public mousedown(event: MouseEvent){
+    public mousedown(){
         if (this.raycaster !== undefined) {
 
             for (const [i, entity] of this.entityManager.draggableEntities) {
@@ -100,7 +112,7 @@ class PiecePlacementManager {
         }
     }
 
-    public async mouseup(event: MouseEvent){
+    public async mouseup(){
         if (this.raycaster !== undefined) {
             if (this.dragging !== undefined && this.draggingLastSafeGridPosition !== undefined) {
                 // place dragging piece,
