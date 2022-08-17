@@ -1,10 +1,8 @@
-use std::{collections::BTreeMap};
-
 use anchor_lang::{solana_program::{hash::{Hash, hash, extend_and_hash}}, prelude::*};
 
 use crate::state::entities;
 
-use super::{utils, entities::{Entities, EntityState}, units, actions::{Actions, Action}};
+use super::{utils, entities::{Entities, EntityState}, units::{self}, actions::{Actions, Action}};
 
 use serde;
 
@@ -316,7 +314,7 @@ impl Game {
     }
 
     /// Run through one game step (every entity moves)
-    pub fn step(&mut self, unit_map: &BTreeMap<units::UnitType, units::Unit>) {
+    pub fn step(&mut self) {
 
         let mut actions: Actions = Actions::new();
         // loop through entities and queue actions
@@ -325,20 +323,20 @@ impl Game {
             if entity.owner == entities::Controller::Initializer || entity.owner == entities::Controller::Opponent {
                 match entity.state {
                     entities::EntityState::Idle => {
-                        entity.walk_or_aa(&mut actions, all_entities, unit_map);
+                        entity.walk_or_aa(&mut actions, all_entities);
                     },
                     entities::EntityState::Moving{to: _} => {
-                        entity.walk_or_aa(&mut actions, all_entities, unit_map);
+                        entity.walk_or_aa(&mut actions, all_entities);
                     },
                     entities::EntityState::Attack{progress, attack_on, target_id} => {
                         let new_progress = progress + 1;
                         if new_progress == attack_on {
-                            let unit = unit_map.get(&entity.unit_type).unwrap();
+                            let stats = &entity.stats.unwrap();
 
-                            let mut attack_damage = unit.attack_damage;
+                            let mut attack_damage = stats.attack_damage;
                             // calculate crit
                             let random = self.get_random_u8();
-                            if random < unit.crit_chance {
+                            if random < stats.crit_chance {
                                 attack_damage = attack_damage * 2;
                             }
                             // attack

@@ -639,6 +639,14 @@
             "type": {
               "defined": "EntityState"
             }
+          },
+          {
+            "name": "stats",
+            "type": {
+              "option": {
+                "defined": "Unit"
+              }
+            }
           }
         ]
       }
@@ -729,6 +737,38 @@
             "type": {
               "defined": "Location"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Unit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "movementSpeed",
+            "type": "u16"
+          },
+          {
+            "name": "attackDuration",
+            "type": "u16"
+          },
+          {
+            "name": "attackRange",
+            "type": "u16"
+          },
+          {
+            "name": "attackDamage",
+            "type": "u16"
+          },
+          {
+            "name": "startingHealth",
+            "type": "u16"
+          },
+          {
+            "name": "critChance",
+            "type": "u8"
           }
         ]
       }

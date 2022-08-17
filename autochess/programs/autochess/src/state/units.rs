@@ -58,6 +58,7 @@ pub enum AttackType {
     Ranged{speed: u16},
 }
 
+#[derive(Debug, Ord, Eq, PartialOrd, PartialEq, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Unit {
     pub movement_speed: u16,
     pub attack_duration: u16,

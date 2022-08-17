@@ -99,7 +99,7 @@ impl WasmState {
     }
 
     pub fn step(&mut self) {
-        self.game.step(&self.unit_map);
+        self.game.step();
     }
 
     pub fn get_win_condition(&mut self) -> JsValue {

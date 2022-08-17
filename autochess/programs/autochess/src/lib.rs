@@ -7,7 +7,6 @@ declare_id!("AwrQQpL4QssWCUCjqrmZ1uySFGBR32jhhhSwm7A57tcS");
 
 #[program]
 pub mod autochess {
-    use state::units;
     use crate::state::{game::{validate_reveal, WinCondition}, entities::Controller};
 
     use super::*;
@@ -328,9 +327,8 @@ pub mod autochess {
     /// move forward by given number of steps
     pub fn crank_game(ctx: Context<CrankGame>, steps: u8) -> ProgramResult {
         let game = &mut ctx.accounts.game;
-        let unit_map = units::get_unit_map();
         for _ in 0..steps {
-            game.step(&unit_map);
+            game.step();
         }
         game.update_win_condition();
         Ok(())

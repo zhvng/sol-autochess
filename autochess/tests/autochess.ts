@@ -329,7 +329,8 @@ describe('autochess', async () => {
         position: { x: 350, y: 450 },
         health: 0,
         unitType: { hidden: {handPosition: 3} },
-        state: { idle: {} }
+        state: { idle: {} },
+        stats: null,
       }, 'Incorrect pieces placed');
     assert.deepStrictEqual((account.entities.all as Array<any>).length, 6, 'Incorrect pieces placed');
   });
@@ -353,7 +354,8 @@ describe('autochess', async () => {
         position: { x: 350, y: 550 },
         health: 0,
         unitType: { hidden: {handPosition: 3} },
-        state: { idle: {} }
+        state: { idle: {} },
+        stats: null,
       }, 'Moved to wrong position');
 
       await program.rpc.removePieceHidden(0, {
@@ -373,7 +375,8 @@ describe('autochess', async () => {
         position: { x: 350, y: 550 },
         health: 0,
         unitType: { hidden: {handPosition: 3} },
-        state: { idle: {} }
+        state: { idle: {} },
+        stats: null,
       }, 'did not delete a piece');
       assert.deepStrictEqual((accountRemove.entities.all as Array<any>).length, 5, 'piece was not deleted');
   })

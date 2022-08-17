@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use anchor_lang::{prelude::*, solana_program::log::sol_log_compute_units};
 use super::{utils::Location, actions::{Action, Actions}, units::{UnitType, Unit, self}};
 
@@ -25,6 +23,7 @@ impl Entities {
             health: unit.starting_health,
             unit_type,
             state: EntityState::Idle,
+            stats: Some(unit.clone())
         });
         self.counter += 1;
         return id;
@@ -43,6 +42,7 @@ impl Entities {
             health: unit.starting_health,
             unit_type,
             state: EntityState::Idle,
+            stats: Some(unit.clone())
         });
         return id;
     }
@@ -64,6 +64,7 @@ impl Entities {
             health: 0,
             unit_type: UnitType::Hidden{hand_position},
             state: EntityState::Idle,
+            stats: None,
         });
         self.counter += 1;
         return id;
@@ -81,6 +82,7 @@ impl Entities {
 
                         entity.unit_type = unit_type;
                         entity.health = unit.starting_health;
+                        entity.stats = Some(unit.clone());
                     },
                     _ => {
                         // shouldn't reach here bc all pieces should be hidden
@@ -178,9 +180,11 @@ pub struct Entity {
     /// Type of unit this is
     pub unit_type: UnitType, 
     pub state: EntityState,
+
+    pub stats: Option<Unit>,
 }
 impl Entity {
-    pub fn walk_or_aa(&self, actions: &mut Actions, all_entities: &Entities, unit_map: &BTreeMap<UnitType, Unit>) {
+    pub fn walk_or_aa(&self, actions: &mut Actions, all_entities: &Entities) {
         let enemy = if self.owner == Controller::Initializer {
             Controller::Opponent
         } else {
@@ -205,10 +209,10 @@ impl Entity {
         };
         match target_entity {
             Some(result) => {
-                let unit = unit_map.get(&self.unit_type).unwrap();
-                let aa_range: u16 = unit.attack_range;
-                let movement_speed: u16 = unit.movement_speed;
-                let attack_duration: u16 = unit.attack_duration;
+                let stats = &self.stats.unwrap();
+                let aa_range: u16 = stats.attack_range;
+                let movement_speed: u16 = stats.movement_speed;
+                let attack_duration: u16 = stats.attack_duration;
 
                 if result.distance <= aa_range {
                     // ATTACK
