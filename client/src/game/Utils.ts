@@ -109,6 +109,7 @@ export const parseRawCard = (card: RawCard): UnitStats => {
         startingHealth: card.stats.starting_health,
         health: card.stats.starting_health, 
         movementSpeed: card.stats.movement_speed,
+        attackDuration: card.stats.attack_duration,
         range: card.stats.attack_range,
         crit: card.stats.crit_chance,
         rarity: parseRarityFromAnchor(card.rarity)

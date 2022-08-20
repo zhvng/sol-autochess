@@ -15,6 +15,7 @@ export type UnitStats = {
     startingHealth: number,
     health: number,
     movementSpeed: number,
+    attackDuration: number,
     range: number,
     crit: number,
     rarity: RarityLevel

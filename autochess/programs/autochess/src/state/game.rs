@@ -468,11 +468,11 @@ pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::C
     ];
 
     let rarities = [
-        (units::Rarity::Common, 141 as u8),
-        (units::Rarity::Uncommon, 60),
-        (units::Rarity::Rare, 30),
-        (units::Rarity::Epic, 15),
-        (units::Rarity::Legendary, 8),
+        (units::Rarity::Common, 150 as u8),
+        (units::Rarity::Uncommon, 65),
+        (units::Rarity::Rare, 25),
+        (units::Rarity::Epic, 10),
+        (units::Rarity::Legendary, 4),
         (units::Rarity::Mythic, 1),
     ];
 
