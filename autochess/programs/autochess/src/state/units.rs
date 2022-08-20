@@ -83,47 +83,47 @@ pub fn get_baseline_unit_stats(unit_type: UnitType, rarity: Rarity) -> Option<Un
     match unit_type {
         UnitType::Wolf => Some(match rarity {
             Rarity::Common => UnitStats {
-                movement_speed: 200 / TICKS_PER_SECOND, // per tick
+                movement_speed: 250 / TICKS_PER_SECOND, // per tick
                 attack_duration: 4, // in ticks
                 attack_range: 125,
                 attack_damage: 15,
                 starting_health: 100,
-                crit_chance: 20, // out of 255
+                crit_chance: 22, // out of 255
             },
             Rarity::Uncommon => UnitStats {
-                movement_speed: 210 / TICKS_PER_SECOND, // per tick
+                movement_speed: 260 / TICKS_PER_SECOND, // per tick
                 attack_duration: 4, // in ticks
                 attack_range: 125,
                 attack_damage: 16,
                 starting_health: 105,
-                crit_chance: 24, // out of 255
+                crit_chance: 26, // out of 255
             }, 
             Rarity::Rare => UnitStats {
-                movement_speed: 220 / TICKS_PER_SECOND, // per tick
+                movement_speed: 270 / TICKS_PER_SECOND, // per tick
                 attack_duration: 4, // in ticks
                 attack_range: 125,
                 attack_damage: 18,
                 starting_health: 110,
-                crit_chance: 28, // out of 255
+                crit_chance: 30, // out of 255
             },
             Rarity::Epic => UnitStats {
-                movement_speed: 230 / TICKS_PER_SECOND, // per tick
+                movement_speed: 280 / TICKS_PER_SECOND, // per tick
                 attack_duration: 4, // in ticks
                 attack_range: 125,
                 attack_damage: 19,
                 starting_health: 115,
-                crit_chance: 32, // out of 255
+                crit_chance: 35, // out of 255
             },
             Rarity::Legendary => UnitStats {
-                movement_speed: 240 / TICKS_PER_SECOND, // per tick
+                movement_speed: 290 / TICKS_PER_SECOND, // per tick
                 attack_duration: 4, // in ticks
                 attack_range: 125,
                 attack_damage: 20,
                 starting_health: 120,
-                crit_chance: 36, // out of 255
+                crit_chance: 37, // out of 255
             },
             Rarity::Mythic => UnitStats {
-                movement_speed: 250 / TICKS_PER_SECOND, // per tick
+                movement_speed: 300 / TICKS_PER_SECOND, // per tick
                 attack_duration: 3, // in ticks
                 attack_range: 125,
                 attack_damage: 21,

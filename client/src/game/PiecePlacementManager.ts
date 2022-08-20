@@ -75,7 +75,6 @@ class PiecePlacementManager {
 
         if (this.raycaster !== undefined) {
             this.raycaster.setFromCamera(this.mouse, this.camera);
-            console.log(this.dragging, this.contractController);
             if (this.dragging !== undefined) {
                 const intersect: Array<THREE.Intersection> = this.raycaster.intersectObject(this.interactiveBoardPlane, false);
                 if (intersect.length > 0) {
@@ -89,7 +88,8 @@ class PiecePlacementManager {
                     const gridX = Math.round((boardX - 50) / 100);
                     const gridY = Math.round((boardY - 50) / 100);
 
-                    this.entityManager.draggableEntities.get(this.dragging).setGridPosition(new Vector2(gridX, gridY), this.entityManager.draggableEntities);
+                    const draggedEntity = this.entityManager.draggableEntities.get(this.dragging)
+                    if (draggedEntity !== undefined) draggedEntity.setGridPosition(new Vector2(gridX, gridY), this.entityManager.draggableEntities);
                 }
             } else {
                 if (this.contractController !== undefined) {
