@@ -175,7 +175,7 @@ pub mod autochess {
             game.i_inactivity_timer = None;
 
             // A 1 minute (+ a few seconds) timer is started. Once this timer is up, piece placement is disabled so its safe to reveal.
-            let piece_timer: i64 = clock.unix_timestamp + 60 + 5;
+            let piece_timer: i64 = clock.unix_timestamp + 90 + 5;
             game.piece_timer = Some(piece_timer);
         }
         Ok(())

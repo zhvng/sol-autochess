@@ -50,8 +50,16 @@ export const JoinGame = ({gamePDAKey}) => {
             notify({ type: 'success', message: 'Transaction successful!', txid: signature });
             window.location.href = `/play/${gamePDAKey.toBase58()}`;
         } catch (error: any) {
-            notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });
-            console.log('error', `Transaction failed! ${error?.message}`, signature);
+            if ((error?.message as string).includes('found no record of a prior credit') || error.logs !== undefined && error.logs[3] !== undefined && error.logs[3].startsWith('Transfer: insufficient lamports')) {
+                notify({ type: 'error', message: `Insufficient funds!` });
+            } else {
+                if (error.code === 3012) {
+                    notify({ type: 'error', message: `Transaction failed!`, description: 'Game no longer exists. Refresh page.', txid: signature });
+                } else {
+                    notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });
+                    console.log('error', JSON.stringify(error.message, null, 4));
+                }
+            }
             clearGameInputs(gamePDAKey, wallet.publicKey);
             return;
         }
