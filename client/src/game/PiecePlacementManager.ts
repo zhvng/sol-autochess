@@ -75,10 +75,10 @@ class PiecePlacementManager {
 
         if (this.raycaster !== undefined) {
             this.raycaster.setFromCamera(this.mouse, this.camera);
-
+            console.log(this.dragging, this.contractController);
             if (this.dragging !== undefined) {
                 const intersect: Array<THREE.Intersection> = this.raycaster.intersectObject(this.interactiveBoardPlane, false);
-                if (intersect.length === 1) {
+                if (intersect.length > 0) {
                     const point: Vector3 = intersect[0].point;
                     const x = point.x;
                     const z = point.z;
@@ -100,7 +100,7 @@ class PiecePlacementManager {
                             return;
                         }
                     }
-                    for (const [i, entity] of this.entityManager.draggableEntities) {
+                    for (const [i, entity] of this.entityManager.entities) {
                         const intersect: Array<THREE.Intersection> = entity.getRaycasterIntersection(this.raycaster)
                         if (intersect.length > 0) {
                             this.contractController.drawUnitData(true, entity.unitStats);
@@ -114,7 +114,6 @@ class PiecePlacementManager {
     }
     public mousedown(){
         if (this.raycaster !== undefined) {
-
             for (const [i, entity] of this.entityManager.draggableEntities) {
                 const intersect: Array<THREE.Intersection> = entity.getRaycasterIntersection(this.raycaster)
                 if (intersect.length > 0) {

@@ -33,8 +33,6 @@ export const UnitData: FC<UnitDataProps> = (props: UnitDataProps) => {
     const range = unitStats.range;
     const crit = unitStats.crit;
     const rarityLevel = unitStats.rarity;
-    console.log(rarityLevel)
-    console.log(rarityColors[rarityLevel])
 
     type RarityProps = {
         rarity: RarityLevel;
@@ -48,6 +46,7 @@ export const UnitData: FC<UnitDataProps> = (props: UnitDataProps) => {
         )
     }
 
+    // hack to get tailwind to load color classes
     if (false) {
         return (<div className='text-white text-emerald-200 text-sky-400 text-purple-600 text-orange-500 text-slate-600 text-bold'></div>);
     }

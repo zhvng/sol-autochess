@@ -43,7 +43,6 @@ class ContractController {
         this.gameProgress = GameProgress.WaitingForOpponent;
 
         this.burnerWallet = Keypair.fromSecretKey(Uint8Array.from(this.gameInputs.burnerWalletSecret));
-        this.initState();
 
         const timerDiv = document.createElement('div');
         timerDiv.style.fontSize = '30px'
@@ -186,7 +185,7 @@ class ContractController {
     }
 
     private async updateState() {
-        console.log('progress:', this.gameProgress.toString(), ', txcount:', this.txCount);
+        console.log('progress:', this.gameProgress, ', txcount:', this.txCount);
         this.draw();
         try {
             switch (this.gameProgress) {
@@ -265,7 +264,7 @@ class ContractController {
                     if (this.lastGameState.state === 3) {
                         this.gameProgress = GameProgress.PopulateBoard;
                         this.clearTimer();
-                        this.updateState();
+                        setTimeout(() => this.updateState(), 500);
                         return;
                     }
                     this.setInactivityTimer();
@@ -278,8 +277,8 @@ class ContractController {
                             Uint8Array.from(this.lastGameState.reveal2),
                         );
                         this.gameProgress = GameProgress.InProgress;
-
-                        setTimeout(()=>this.updateState(), 15000);
+                        setTimeout(() => {this.entityManager.simulationStarted = true;}, 5000)
+                        setTimeout(()=> this.updateState(), 10000);
                         return;
                     }
                     break;
@@ -290,7 +289,7 @@ class ContractController {
                     if (winCondition !== undefined) {
                         if (winCondition['inProgress'] === undefined) {
                             this.gameProgress = GameProgress.End;
-                            this.updateState();
+                            setTimeout(() => this.updateState(), 500);
                             return;
                         }
                     }

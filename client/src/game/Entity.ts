@@ -1,4 +1,4 @@
-import { AnimationAction, AnimationClip, AnimationMixer, Group, Intersection, LoopOnce, Object3D, Quaternion, QuaternionKeyframeTrack, Raycaster, Scene, Vector2, Vector3, VectorKeyframeTrack } from "three";
+import { AnimationAction, AnimationClip, AnimationMixer, BoxBufferGeometry, Group, Intersection, LoopOnce, Mesh, MeshStandardMaterial, Object3D, Quaternion, QuaternionKeyframeTrack, Raycaster, Scene, Vector2, Vector3, VectorKeyframeTrack } from "three";
 import { GLTF } from "three/examples/jsm/loaders/GLTFLoader";
 import { ControllerWasm, UnitTypeWasm } from "wasm-client";
 import WasmController from "./WasmController";
@@ -15,6 +15,7 @@ class Entity {
     private previousAnimation: Animations;
     private state: UnitState = UnitState.Idle;
     private model: Group;
+    private dragBox: Mesh;
     private healthBar: HealthBar;
     private unit: Group;
     constructor(
@@ -35,6 +36,15 @@ class Entity {
         this.healthBar = new HealthBar(this.unit, this.controller, unitStats.startingHealth);
         // add to unit
         this.unit.add(this.model);
+
+        // Add a box for collisions
+        this.dragBox = new Mesh(
+            new BoxBufferGeometry(4, 4, 4),
+            new MeshStandardMaterial({
+                visible: false,
+            })
+        );
+        this.unit.add(this.dragBox)
         this.scene.add(this.unit);
 
         const convertedPosition = boardCoordinatesTo3D(this.initialBoardPosition);
@@ -202,6 +212,14 @@ class Entity {
         if (this.movementTarget !== undefined) {
             this.unit.position.lerp(new Vector3(this.movementTarget.x, this.movementTarget.y, this.movementTarget.z), .1);
             this.movementTarget = undefined;
+        }
+    }
+
+    public getRaycasterIntersection(raycaster: Raycaster): Intersection[] {
+        if (this.state === UnitState.Dead) {
+            return [];
+        } else {
+            return raycaster.intersectObject(this.dragBox, false);
         }
     }
 }
