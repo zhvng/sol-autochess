@@ -137,6 +137,7 @@ class EntityManager {
     }
 
     private placeRevealedPiece(entity: any) {
+        console.log(entity);
         if (entity !== undefined 
             && entity.id !== undefined 
             && entity.position !== undefined 
@@ -144,12 +145,14 @@ class EntityManager {
             && entity.owner !== undefined 
             && entity.health !== undefined
             && entity.stats !== undefined
-            && entity.rarity !== undefined) {
+            && entity.rarity !== undefined
+            && entity.specialTrait !== undefined) {
 
             const card = convertAnchorCardToRawCard({
                 stats: entity.stats,
                 rarity: entity.rarity,
                 unitType: entity.unitType,
+                specialTrait: entity.specialTrait,
             })
 
             const unitType = parseUnitTypeFromAnchor(entity.unitType);

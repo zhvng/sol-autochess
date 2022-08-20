@@ -2,7 +2,7 @@ use anchor_lang::{solana_program::{hash::{Hash, hash, extend_and_hash}}, prelude
 
 use crate::state::entities;
 
-use super::{utils, entities::{Entities, EntityState}, units::{self}, actions::{Actions, Action}};
+use super::{utils, entities::{Entities, EntityState}, units::{self, SpecialTrait}, actions::{Actions, Action}};
 
 use serde;
 
@@ -321,34 +321,39 @@ impl Game {
         let all_entities = &self.entities.clone();
         for entity in &self.entities.all.clone() {
             if entity.owner == entities::Controller::Initializer || entity.owner == entities::Controller::Opponent {
-                match entity.state {
-                    entities::EntityState::Idle => {
-                        entity.walk_or_aa(&mut actions, all_entities);
-                    },
-                    entities::EntityState::Moving{to: _} => {
-                        entity.walk_or_aa(&mut actions, all_entities);
-                    },
-                    entities::EntityState::Attack{progress, attack_on, target_id} => {
-                        let new_progress = progress + 1;
-                        if new_progress == attack_on {
-                            let stats = entity.stats.as_ref().unwrap();
 
-                            let mut attack_damage = stats.attack_damage;
-                            // calculate crit
-                            let random = self.get_random_u8();
-                            if random < stats.crit_chance {
-                                attack_damage = attack_damage * 2;
+                if self.tick == 0 && entity.special_trait == Some(SpecialTrait::Assassin) {
+                    entity.assassin_hop(&mut actions);
+                } else {
+                    match entity.state {
+                        entities::EntityState::Idle => {
+                            entity.walk_or_aa(&mut actions, all_entities);
+                        },
+                        entities::EntityState::Moving{to: _} => {
+                            entity.walk_or_aa(&mut actions, all_entities);
+                        },
+                        entities::EntityState::Attack{progress, attack_on, target_id} => {
+                            let new_progress = progress + 1;
+                            if new_progress == attack_on {
+                                let stats = entity.stats.as_ref().unwrap();
+
+                                let mut attack_damage = stats.attack_damage;
+                                // calculate crit
+                                let random = self.get_random_u8();
+                                if random < stats.crit_chance {
+                                    attack_damage = attack_damage * 2;
+                                }
+                                // attack
+                                actions.add(target_id, Action::Damage{amount: attack_damage});
+                                actions.add(entity.id, Action::EntityStateChange { state: EntityState::Idle });
+                            } else {
+                                actions.add(entity.id, Action::EntityStateChange { 
+                                    state: EntityState::Attack { progress: new_progress, attack_on, target_id }
+                                });
                             }
-                            // attack
-                            actions.add(target_id, Action::Damage{amount: attack_damage});
-                            actions.add(entity.id, Action::EntityStateChange { state: EntityState::Idle });
-                        } else {
-                            actions.add(entity.id, Action::EntityStateChange { 
-                                state: EntityState::Attack { progress: new_progress, attack_on, target_id }
-                            });
-                        }
-                    },
-                    _other=>{}
+                        },
+                        _other=>{}
+                    }
                 }
             }
         };
@@ -476,17 +481,25 @@ pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::C
         (units::Rarity::Mythic, 1),
     ];
 
+    let special_traits = [
+        (Some(units::SpecialTrait::Assassin), 1 as u8),
+        (None, 4),
+    ];
+
     let mut randomness = generate_new_randomness(&reveal);
     for _ in 0..n {
         let rnd_unit_type = randomness[0]; //random u8 between 0 and 255
         let rnd_rarity = randomness[1]; //random u8 between 0 and 255
+        let rnd_special_trait = randomness[2]; //random u8 between 0 and 255
         let unit_type = get_from_p_array(&deck, rnd_unit_type);
         let rarity = get_from_p_array(&rarities, rnd_rarity);
+        let special_trait = get_from_p_array(&special_traits, rnd_special_trait);
         let stats = units::get_baseline_unit_stats(unit_type, rarity).unwrap();
         result.push(units::Card {
             unit_type,
             stats,
             rarity,
+            special_trait
         });
         randomness = generate_new_randomness(&randomness); 
     }

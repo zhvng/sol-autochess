@@ -591,7 +591,8 @@ class ContractController {
         const prevUnitIsDifferentFromCurrent = oldUnitStats !== undefined 
             && unitStats !== undefined
             && (oldUnitStats.unitType !== unitStats.unitType
-            || oldUnitStats.rarity !== unitStats.rarity);
+            || oldUnitStats.rarity !== unitStats.rarity
+            || oldUnitStats.specialTrait !== unitStats.specialTrait);
         if (show !== unitDataIsShowing || prevUnitIsDifferentFromCurrent) {
             this.uiController.dispatchUIChange({
                 changes: new Map([

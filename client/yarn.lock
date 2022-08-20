@@ -7448,7 +7448,7 @@
   "resolved" "file:wasm-client/pkg"
   "version" "0.1.0"
 
-"wasm-pack@^0.10.3":
+"wasm-pack@^0.10.2":
   "integrity" "sha512-dg1PPyp+QwWrhfHsgG12K/y5xzwfaAoK1yuVC/DUAuQsDy5JywWDuA7Y/ionGwQz+JBZVw8jknaKBnaxaJfwTA=="
   "resolved" "https://registry.npmjs.org/wasm-pack/-/wasm-pack-0.10.3.tgz"
   "version" "0.10.3"

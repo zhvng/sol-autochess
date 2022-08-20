@@ -8,6 +8,11 @@ export enum RarityLevel {
     Legendary = "Legendary",
     Mythic = "Mythic",
 }
+
+export enum SpecialTrait {
+    Assassin = "Assassin",
+    None = "None",
+}
   
 export type UnitStats = {
     unitType: UnitTypeWasm,
@@ -18,7 +23,8 @@ export type UnitStats = {
     attackDuration: number,
     range: number,
     crit: number,
-    rarity: RarityLevel
+    rarity: RarityLevel,
+    specialTrait: SpecialTrait,
 }
 
 export type RawCard = {
@@ -32,6 +38,7 @@ export type RawCard = {
     },
     unit_type: string,
     rarity: string,
+    special_trait: string | null,
 }
 
 export type RawCardAnchor = {
@@ -48,5 +55,8 @@ export type RawCardAnchor = {
     },
     rarity: {
         [key:string]: any
-    }
+    },
+    specialTrait: {
+        [key:string]: any
+    } | null,
 }

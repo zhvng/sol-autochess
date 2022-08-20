@@ -655,6 +655,14 @@
                 "defined": "Rarity"
               }
             }
+          },
+          {
+            "name": "specialTrait",
+            "type": {
+              "option": {
+                "defined": "SpecialTrait"
+              }
+            }
           }
         ]
       }
@@ -802,6 +810,14 @@
             "name": "rarity",
             "type": {
               "defined": "Rarity"
+            }
+          },
+          {
+            "name": "specialTrait",
+            "type": {
+              "option": {
+                "defined": "SpecialTrait"
+              }
             }
           }
         ]
@@ -1084,6 +1100,17 @@
           },
           {
             "name": "Mythic"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpecialTrait",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Assassin"
           }
         ]
       }

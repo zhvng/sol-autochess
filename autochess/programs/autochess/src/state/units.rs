@@ -240,7 +240,13 @@ pub fn get_baseline_unit_stats(unit_type: UnitType, rarity: Rarity) -> Option<Un
 pub struct Card {
     pub unit_type: UnitType,
     pub stats: UnitStats,
-    pub rarity: Rarity
+    pub rarity: Rarity,
+    pub special_trait: Option<SpecialTrait>,
+}
+
+#[derive(Debug, Ord, Eq, PartialOrd, PartialEq, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum SpecialTrait {
+    Assassin,
 }
 // pub struct AttackModifierArgs<'a> {
 //     pub unit: &'a Unit<'a>,

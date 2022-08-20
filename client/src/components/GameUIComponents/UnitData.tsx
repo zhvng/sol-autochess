@@ -1,4 +1,4 @@
-import { RarityLevel, UnitStats } from "models/gameTypes";
+import { RarityLevel, SpecialTrait, UnitStats } from "models/gameTypes";
 import { FC } from "react";
 import { UnitTypeWasm } from "wasm-client";
 
@@ -37,6 +37,7 @@ export const UnitData: FC<UnitDataProps> = (props: UnitDataProps) => {
     const crit = (unitStats.crit / 255).toLocaleString(undefined, { style: 'percent', maximumFractionDigits: 1 });
     const rarityLevel = unitStats.rarity;
     const attackSpeed = (TICKS_PER_SECOND / unitStats.attackDuration).toFixed(2) + ' atk/s';
+    const specialTrait = unitStats.specialTrait;
 
     type RarityProps = {
         rarity: RarityLevel;
@@ -50,6 +51,22 @@ export const UnitData: FC<UnitDataProps> = (props: UnitDataProps) => {
         )
     }
 
+    type SpecialTraitDisplayProps = {
+        specialTrait: SpecialTrait;
+    }
+    const SpecialTraitDisplay = ({specialTrait}: SpecialTraitDisplayProps) => {
+        switch(specialTrait) {
+            case SpecialTrait.None:
+                return null;
+            case SpecialTrait.Assassin:
+                return (
+                    <div className='w-fit border-2 border-red-300 text-red-300 px-2'>Assassin</div>
+                )
+            default:
+                return null;
+        }
+    }
+
     // hack to get tailwind to load color classes
     if (false) {
         return (<div className='text-white text-emerald-200 text-sky-400 text-purple-600 text-orange-500 text-slate-600 text-bold'></div>);
@@ -58,6 +75,9 @@ export const UnitData: FC<UnitDataProps> = (props: UnitDataProps) => {
         <div className={`absolute bottom-0 text-${rarityColors[rarityLevel]}  border-0 right-0 bg-black h-fit m-2 w-72 p-2 shadow`}>
             <div className={`text-xl font-mono text-center text-slate-200`}>
                 {unitDisplayName}
+                <div className='inline-block align-middle ml-4 text-sm font-mono'>
+                <SpecialTraitDisplay specialTrait={specialTrait}/>
+            </div>
             </div>
             <div className='text-md font-mono'>
                 <div><span className='text-slate-300'>health:</span> {health}/{startingHealth}</div>

@@ -1,5 +1,5 @@
 import assert from "assert";
-import { RarityLevel, RawCard, RawCardAnchor, UnitStats } from "models/gameTypes";
+import { RarityLevel, RawCard, RawCardAnchor, SpecialTrait, UnitStats } from "models/gameTypes";
 import { Bone, BoxBufferGeometry, Object3D, SkinnedMesh, Vector2, Vector3 } from "three"
 import { ControllerWasm, UnitTypeWasm } from "wasm-client";
 
@@ -79,6 +79,21 @@ export const parseRarityFromAnchor = (rarity: string | {[key:string]: any}): Rar
             throw new Error('should never get here');
     }
 }
+export const parseSpecialTraitFromAnchor = (specialTrait: string | {[key:string]: any} | null): SpecialTrait => {
+    if (specialTrait === null) return SpecialTrait.None;
+    let text = '';
+    if (typeof specialTrait === 'string') {
+        text = specialTrait.toLowerCase();
+    } else {
+        text = Object.keys(specialTrait)[0].toLowerCase();
+    }
+    switch(text) {
+        case 'assassin':
+            return SpecialTrait.Assassin;
+        default:
+            throw new Error('should never get here');
+    }
+}
 
 export const convertAnchorCardToRawCard = (anchorCard: RawCardAnchor): RawCard => {
     return {
@@ -92,6 +107,7 @@ export const convertAnchorCardToRawCard = (anchorCard: RawCardAnchor): RawCard =
         },
         unit_type: capitalize(Object.keys(anchorCard.unitType)[0]), 
         rarity: capitalize(Object.keys(anchorCard.rarity)[0]),
+        special_trait: anchorCard.specialTrait ? capitalize(Object.keys(anchorCard.specialTrait)[0]) : null,
     }
 }
 function capitalize(s: string) {
@@ -112,7 +128,8 @@ export const parseRawCard = (card: RawCard): UnitStats => {
         attackDuration: card.stats.attack_duration,
         range: card.stats.attack_range,
         crit: card.stats.crit_chance,
-        rarity: parseRarityFromAnchor(card.rarity)
+        rarity: parseRarityFromAnchor(card.rarity),
+        specialTrait: parseSpecialTraitFromAnchor(card.special_trait),
     }
 }
 

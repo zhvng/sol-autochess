@@ -1,4 +1,3 @@
-import { assert } from "console";
 import { RawCard, RawCardAnchor, UnitStats } from "models/gameTypes";
 import { ControllerWasm, UnitTypeWasm, WasmState, draw_private_hand } from "wasm-client";
 import { parseRarityFromAnchor, parseRawCard, parseUnitTypeFromAnchor } from "./Utils";
@@ -12,6 +11,7 @@ class WasmController {
 
     public drawHand(randomness1: Uint8Array, randomness2: Uint8Array): Array<UnitStats> {
         const cardHand: Array<RawCard> = draw_private_hand(randomness1, randomness2);
+        console.log(cardHand);
         const hand: Array<UnitStats> = [];
         for (const card of cardHand) {
             hand.push(parseRawCard(card));
@@ -50,9 +50,6 @@ class WasmController {
     }
     public getEntityById(id: number) {
         return this.wasmState.get_entity_by_id(id);
-    }
-    public getUnitStartingHealth(unitType: UnitTypeWasm) {
-        return this.wasmState.get_unit_starting_health(unitType);
     }
 }
 

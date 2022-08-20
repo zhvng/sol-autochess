@@ -1,5 +1,5 @@
 use anchor_lang::{prelude::*, solana_program::log::sol_log_compute_units};
-use super::{utils::Location, actions::{Action, Actions}, units::{UnitType, UnitStats, Card, Rarity}};
+use super::{utils::Location, actions::{Action, Actions}, units::{UnitType, UnitStats, Card, Rarity, SpecialTrait}};
 
 use serde;
 
@@ -21,6 +21,7 @@ impl Entities {
         let unit_type = card.unit_type;
         let stats = &card.stats;
         let rarity = card.rarity;
+        let special_trait = card.special_trait;
         self.all.push(Entity {
             id,
             owner: player,
@@ -32,6 +33,7 @@ impl Entities {
             state: EntityState::Idle,
             stats: Some(stats.clone()),
             rarity: Some(rarity),
+            special_trait,
         });
         return id;
     }
@@ -55,6 +57,7 @@ impl Entities {
             state: EntityState::Idle,
             stats: None,
             rarity: None,
+            special_trait: None,
         });
         self.counter += 1;
         return id;
@@ -69,11 +72,13 @@ impl Entities {
                         let unit_type = card.unit_type;
                         let stats = &card.stats;
                         let rarity = card.rarity;
+                        let special_trait = card.special_trait;
 
                         entity.unit_type = unit_type;
                         entity.health = stats.starting_health;
                         entity.stats = Some(stats.clone());
                         entity.rarity = Some(rarity);
+                        entity.special_trait = special_trait;
                     },
                     _ => {
                         panic!("shouldn't reach here bc all pieces should be hidden");
@@ -174,6 +179,7 @@ pub struct Entity {
 
     pub stats: Option<UnitStats>,
     pub rarity: Option<Rarity>,
+    pub special_trait: Option<SpecialTrait>,
 }
 impl Entity {
     pub fn walk_or_aa(&self, actions: &mut Actions, all_entities: &Entities) {
@@ -225,6 +231,26 @@ impl Entity {
             }
         }
         sol_log_compute_units();
+    }
+
+    pub fn assassin_hop(&self, actions: &mut Actions) {
+        // move to back row of board
+        let move_to = if self.owner == Controller::Initializer {
+            let to = Location {
+                x: self.position.x,
+                y: 800,
+            };
+            actions.add(self.id, Action::Move { to });
+            to
+        } else {
+            let to = Location {
+                x: self.position.x,
+                y: 0,
+            };
+            actions.add(self.id, Action::Move { to }); 
+            to
+        };
+        actions.add(self.id, Action::EntityStateChange { state: EntityState::Moving{to: move_to} });
     }
 }
 

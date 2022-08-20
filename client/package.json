@@ -33,7 +33,7 @@
     "three": "^0.138.3",
     "uuid": "^8.3.2",
     "wasm-client": "file:./wasm-client/pkg",
-    "wasm-pack": "^0.10.3",
+    "wasm-pack": "^0.10.2",
     "zustand": "^3.6.9"
   },
   "devDependencies": {

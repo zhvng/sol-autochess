@@ -125,11 +125,6 @@ impl WasmState {
     pub fn get_entity_by_id(&mut self, id: u16) -> JsValue {
         JsValue::from_serde(&self.game.entities.get_by_id_mut(id)).unwrap()
     }
-
-    pub fn get_unit_starting_health(&mut self, unit_type: UnitTypeWasm) -> u16 {
-        let info = self.unit_map.get(&unit_type.convert()).unwrap();
-        info.starting_health
-    }
 }
 
 #[wasm_bindgen]
