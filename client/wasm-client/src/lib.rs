@@ -6,7 +6,7 @@ use std::{collections::{BTreeMap}, convert::TryInto};
 use wasm_bindgen::prelude::*;
 use serde;
 
-use autochess::state::{game::Game, game::draw_hand, units::{self, UnitType, Unit}, entities::Controller};
+use autochess::state::{game::Game, game::draw_hand, units::{self, UnitType, UnitStats, Card}, entities::Controller};
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
@@ -22,7 +22,7 @@ extern {
 #[wasm_bindgen]
 pub struct WasmState {
   game: Game,
-  unit_map: BTreeMap<UnitType, Unit>
+  unit_map: BTreeMap<UnitType, UnitStats>
 }
 
 #[wasm_bindgen]
@@ -88,13 +88,15 @@ impl WasmState {
         }
     }
 
-    pub fn place_piece(&mut self, x:u16, y: u16, unit_type: UnitTypeWasm, player_type: ControllerWasm) -> u16 {
-        let placed = self.game.place_piece(player_type.convert(), x, y, unit_type.convert());
+    pub fn place_piece(&mut self, x:u16, y: u16, card_js: JsValue, player_type: ControllerWasm) -> u16 {
+        let card: Card = card_js.into_serde::<Card>().unwrap();
+        let placed = self.game.place_piece(player_type.convert(), x, y, card);
         return placed.unwrap();
     }
 
-    pub fn place_piece_with_id(&mut self, id: u16, x:u16, y: u16, unit_type: UnitTypeWasm, player_type: ControllerWasm) -> u16 {
-        let placed = self.game.place_piece_with_id(id, player_type.convert(), x, y, unit_type.convert());
+    pub fn place_piece_with_id(&mut self, id: u16, x:u16, y: u16, card_js: JsValue, player_type: ControllerWasm) -> u16 {
+        let card: Card = card_js.into_serde::<Card>().unwrap();
+        let placed = self.game.place_piece_with_id(id, player_type.convert(), x, y, card);
         return placed.unwrap();
     }
 

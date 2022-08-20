@@ -4,17 +4,18 @@ import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { ControllerWasm, UnitTypeWasm } from "wasm-client";
 import Entity from "./Entity";
 import WasmController from "./WasmController";
-import { GameProgress, GridBoxGeometry, gridCoordinatesToBoardCoordinates, parseControllerFromAnchor, parseUnitTypeFromAnchor } from "./Utils";
+import { convertAnchorCardToRawCard, GameProgress, GridBoxGeometry, gridCoordinatesToBoardCoordinates, parseControllerFromAnchor, parseRawCard, parseUnitTypeFromAnchor } from "./Utils";
 import { Group } from "@tweenjs/tween.js";
 
 import DraggableEntity from "./DraggableEntity";
 import HiddenEntity from "./HiddenEntity";
+import { RawCard, RawCardAnchor, UnitStats } from "models/gameTypes";
 
 
 class EntityManager {
     private mixers: Array<AnimationMixer>;
     private readonly models: Map<UnitTypeWasm, GLTF> = new Map();
-    private readonly entities: Map<number, Entity> = new Map();
+    public readonly entities: Map<number, Entity> = new Map();
     public readonly draggableEntities: Map<number, DraggableEntity> = new Map();
     public readonly hiddenEntities: Map<number, HiddenEntity> = new Map();
     // public readonly staticEntities: Map<number, StaticEntity> = new Map();
@@ -100,9 +101,9 @@ class EntityManager {
     }
 
     public drawAndPlaceHand(random1: Uint8Array, random2: Uint8Array, isInitializer: boolean) {
-        const hand: Array<UnitTypeWasm> = this.wasmController.drawHand(random1, random2);
+        const hand: Array<UnitStats> = this.wasmController.drawHand(random1, random2);
         if (this.hasPlacedHand === false){
-            for (const [i, unitType] of hand.entries()) {
+            for (const [i, unitStats] of hand.entries()) {
                 let position: Vector2;
                 let playerType: ControllerWasm;
                 if (isInitializer) {
@@ -113,7 +114,7 @@ class EntityManager {
                     playerType = ControllerWasm.Opponent;
                 }
                 // place piece
-                this.createDraggableEntity(i, position, unitType, playerType);
+                this.createDraggableEntity(i, position, unitStats, playerType);
             }
             this.hasPlacedHand = true
         }
@@ -141,7 +142,15 @@ class EntityManager {
             && entity.position !== undefined 
             && entity.unitType !== undefined 
             && entity.owner !== undefined 
-            && entity.health !== undefined) {
+            && entity.health !== undefined
+            && entity.stats !== undefined
+            && entity.rarity !== undefined) {
+
+            const card = convertAnchorCardToRawCard({
+                stats: entity.stats,
+                rarity: entity.rarity,
+                unitType: entity.unitType,
+            })
 
             const unitType = parseUnitTypeFromAnchor(entity.unitType);
             if (unitType === 'hidden') {
@@ -150,14 +159,12 @@ class EntityManager {
 
             const controller = parseControllerFromAnchor(entity.owner);
 
-            const startingHealth = this.wasmController.getUnitStartingHealth(unitType)
             this.createEntity(entity.id, 
                 new Vector2(entity.position.x, entity.position.y),
-                startingHealth,
-                unitType,
+                parseRawCard(card),
                 controller
             );
-            this.wasmController.placePieceWithId(entity.id, entity.position.x, entity.position.y, unitType, controller);
+            this.wasmController.placePieceWithId(entity.id, entity.position.x, entity.position.y, card, controller);
         } else {
             throw new Error('incorrect params for entity creation');
         }
@@ -200,13 +207,16 @@ class EntityManager {
         }
     }
 
-    private createDraggableEntity(id: number, gridPosition: Vector2, unitType: UnitTypeWasm, controller: ControllerWasm): void {
+    private createDraggableEntity(id: number, gridPosition: Vector2, unitStats: UnitStats, controller: ControllerWasm): void {
+        const unitType = unitStats.unitType;
         const entity = new DraggableEntity(
+            id,
             this.scene, 
             this.models.get(unitType)!, 
             gridPosition, 
             unitType, 
-            controller);
+            controller,
+            unitStats);
         this.draggableEntities.set(id,entity);
     }
 
@@ -215,10 +225,12 @@ class EntityManager {
         this.hiddenEntities.set(id, entity);
     }
 
-    private createEntity(id: number, boardPosition: Vector2, startingHealth: number, unitType: UnitTypeWasm, controller: ControllerWasm): void {
+    private createEntity(id: number, boardPosition: Vector2, unitStats: UnitStats, controller: ControllerWasm): void {
+        const unitType = unitStats.unitType
         if (this.wasmController !== undefined) {
                 this.entities.set(id,
                     new Entity(
+                        id,
                         this.scene, 
                         this.wasmController,
                         this.models.get(unitType)!, 
@@ -226,7 +238,7 @@ class EntityManager {
                         boardPosition,
                         unitType, 
                         controller,
-                        startingHealth));
+                        unitStats));
         }
     }
 

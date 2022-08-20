@@ -18,7 +18,7 @@ export const WalletProfileModule: FC = () => {
     const { getUserSOLBalance } = useUserSOLBalanceStore();
     
     useEffect(() => {
-      if (wallet !== undefined && wallet.publicKey !== undefined) {
+      if (wallet !== undefined && wallet.publicKey !== undefined && connection !== undefined) {
         console.log('main wallet: ', wallet.publicKey.toBase58())
         getUserSOLBalance(wallet.publicKey, connection)
       }

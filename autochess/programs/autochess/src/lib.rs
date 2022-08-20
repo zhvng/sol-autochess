@@ -411,7 +411,7 @@ pub struct CreateGame<'info> {
         constraint = game_id.len() < 30,
         seeds = [game_id.as_bytes(), b"Game"],
         bump,
-        space = 500,
+        space = 700,
         payer = initializer, owner = *program_id,
     )]
     game: Account<'info, Game>,

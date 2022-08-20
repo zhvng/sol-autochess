@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { Dispatch, FC, useEffect, useReducer, useRef } from 'react';
 import Game from 'game/Game';
 import { useRouter } from 'next/router'
-import init from 'wasm-client';
+import init, { UnitTypeWasm } from 'wasm-client';
 import { PublicKey } from '@solana/web3.js';
 import { notify } from 'utils/notifications';
 import { useAnchorWallet } from '@solana/wallet-adapter-react';
@@ -15,19 +15,22 @@ import { PlacePiecesInfo } from 'components/GameUIComponents/PlacePiecesInfo';
 import { WaitingForRevealInfo } from 'components/GameUIComponents/WaitingForRevealInfo';
 import { LockInButton } from 'components/GameUIComponents/LockInButton';
 import { ClaimInactivityButton } from 'components/GameUIComponents/ClaimInactivityButton';
+import { UnitData } from 'components/GameUIComponents/UnitData';
+import { UnitStats } from 'models/gameTypes';
 
 export enum UIComponent {
   PlacePieces,
   WaitingForReveal,
   ClaimInactivityButton,
-  LockInButton
+  LockInButton,
+  UnitData,
 }
 
 export type UIComponentData = {
   show: boolean,
-  info?: string,
   onClick?: () => void,
   disabled?: boolean,
+  unitStats?: UnitStats
 }
 
 export type UIReducerAction = {
@@ -55,6 +58,7 @@ const defaultUIState = new Map<UIComponent, UIComponentData>(
     [UIComponent.WaitingForReveal, { show: false }],
     [UIComponent.ClaimInactivityButton, { show: false }],
     [UIComponent.LockInButton, { show: false }],
+    [UIComponent.UnitData, { show: false }],
   ]
 );
 
@@ -103,6 +107,7 @@ const Play = () => {
           notify({ type: 'error', message: `Joining game failed!` });
         }
       })()
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, wallet]);
     if (id === undefined) return (
       <div>loading</div>
@@ -117,6 +122,7 @@ const Play = () => {
           {uiState.get(UIComponent.WaitingForReveal).show && <WaitingForRevealInfo />}
           {uiState.get(UIComponent.ClaimInactivityButton).show && <ClaimInactivityButton {...uiState.get(UIComponent.ClaimInactivityButton)} />}
           {uiState.get(UIComponent.LockInButton).show && <LockInButton {...uiState.get(UIComponent.LockInButton)} />}
+          {uiState.get(UIComponent.UnitData).show && <UnitData {...uiState.get(UIComponent.UnitData)} />}
 
           <div
             style={{ width: '100%', height: '100%', zIndex: 0}}

@@ -147,14 +147,14 @@ impl Game {
 
     /// Place piece in a grid, where (0,0) is the bottom left grid from the initalizers pov, and (7,7) is the top right.
     /// For client use
-    pub fn place_piece(&mut self, player: entities::Controller, grid_x: u16, grid_y: u16, unit_type: units::UnitType) -> Option<u16> {
+    pub fn place_piece(&mut self, player: entities::Controller, grid_x: u16, grid_y: u16, card: units::Card) -> Option<u16> {
         msg!("{:?}", self.entities);
 
         let x = grid_x * 100 + 50;
         let y = grid_y * 100 + 50;
 
         if self.can_place(player, x, y, 1) {
-            let id = self.entities.create(player, x, y, unit_type);
+            let id = self.entities.create(player, x, y, card);
             return Some(id);
         } else {
             return None;
@@ -163,10 +163,10 @@ impl Game {
 
     /// Place piece with a given id.
     /// For client use
-    pub fn place_piece_with_id(&mut self, id: u16, player: entities::Controller, board_x: u16, board_y: u16, unit_type: units::UnitType) -> Option<u16> {
+    pub fn place_piece_with_id(&mut self, id: u16, player: entities::Controller, board_x: u16, board_y: u16, card: units::Card) -> Option<u16> {
         msg!("{:?}", self.entities);
 
-        let id = self.entities.create_with_id(id, player, board_x, board_y, unit_type);
+        let id = self.entities.create_with_id(id, player, board_x, board_y, card);
         return Some(id);
     }
 
@@ -331,7 +331,7 @@ impl Game {
                     entities::EntityState::Attack{progress, attack_on, target_id} => {
                         let new_progress = progress + 1;
                         if new_progress == attack_on {
-                            let stats = &entity.stats.unwrap();
+                            let stats = entity.stats.as_ref().unwrap();
 
                             let mut attack_damage = stats.attack_damage;
                             // calculate crit
@@ -434,8 +434,22 @@ pub fn generate_new_randomness(stored_hash: &[u8; 32]) -> [u8; 32] {
     hash(stored_hash).to_bytes()
 }
 
-/// Draw from deck using randomness of first reveal and second reveal. Client side, but verified on chain.
-pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::UnitType> {
+/// Get element from array based on random, which is in [0,256).
+fn get_from_p_array<T: Clone>(array: &[(T, u8)], random: u8) -> T {
+    let total_p = array.iter().fold(0, |acc, (_, p)| acc + p);
+    let random_in_range = random as f32 / 256.0 * total_p as f32; // [0, total_p)
+    let mut running_total = 0;
+    for (item, weight) in array.iter() {
+        running_total += weight;
+        if random_in_range < running_total as f32 {
+            return item.clone();
+        }
+    }
+    panic!("random_in_range {} is out of range", random_in_range);
+}
+
+/// Draw from deck using randomness of first reveal and second commit. Client side, but verified on chain.
+pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::Card> {
     // XOR randomness together
     msg!("drawing");
     let mut reveal = randomness1.clone();
@@ -443,18 +457,38 @@ pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::U
         .zip(randomness2.iter())
         .for_each(|(x1, x2)| *x1 ^= *x2);
 
-    let mut result: Vec<units::UnitType> = Vec::new();
+    let mut result: Vec<units::Card> = Vec::new();
     let n = 5; //number of cards to draw
 
+    // Array of unit type and the relative probability
     let deck = [
-        units::UnitType::Wolf,
-        units::UnitType::Bear,
-        units::UnitType::Bull
+        (units::UnitType::Wolf, 1 as u8),
+        (units::UnitType::Bear, 1),
+        (units::UnitType::Bull, 1),
     ];
-    for i in 0..n {
-        let random = reveal[i  as usize]; //random u8 between 0 and 255
-        let index = (random as f32 / 256.0 * 3.0) as u8; //between 0 and 2 inclusive
-        result.push(deck[index as usize]);
+
+    let rarities = [
+        (units::Rarity::Common, 141 as u8),
+        (units::Rarity::Uncommon, 60),
+        (units::Rarity::Rare, 30),
+        (units::Rarity::Epic, 15),
+        (units::Rarity::Legendary, 8),
+        (units::Rarity::Mythic, 1),
+    ];
+
+    let mut randomness = generate_new_randomness(&reveal);
+    for _ in 0..n {
+        let rnd_unit_type = randomness[0]; //random u8 between 0 and 255
+        let rnd_rarity = randomness[1]; //random u8 between 0 and 255
+        let unit_type = get_from_p_array(&deck, rnd_unit_type);
+        let rarity = get_from_p_array(&rarities, rnd_rarity);
+        let stats = units::get_baseline_unit_stats(unit_type, rarity).unwrap();
+        result.push(units::Card {
+            unit_type,
+            stats,
+            rarity,
+        });
+        randomness = generate_new_randomness(&randomness); 
     }
     result
 }

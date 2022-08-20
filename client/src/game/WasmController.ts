@@ -1,4 +1,7 @@
+import { assert } from "console";
+import { RawCard, RawCardAnchor, UnitStats } from "models/gameTypes";
 import { ControllerWasm, UnitTypeWasm, WasmState, draw_private_hand } from "wasm-client";
+import { parseRarityFromAnchor, parseRawCard, parseUnitTypeFromAnchor } from "./Utils";
 
 class WasmController {
     private wasmState: WasmState;
@@ -7,24 +10,13 @@ class WasmController {
         this.wasmState = new WasmState();
     }
 
-    public drawHand(randomness1: Uint8Array, randomness2: Uint8Array): Array<UnitTypeWasm> {
-        const stringHand = draw_private_hand(randomness1, randomness2);
-        const hand: Array<UnitTypeWasm> = [];
-        console.log(stringHand);
-        for (const unit of stringHand) {
-            switch (unit) {
-                case 'Wolf':
-                    hand.push(UnitTypeWasm.Wolf);
-                    break;
-                case 'Bear':
-                    hand.push(UnitTypeWasm.Bear);
-                    break;
-                case 'Bull':
-                    hand.push(UnitTypeWasm.Bull);
-                    break;
-            }
+    public drawHand(randomness1: Uint8Array, randomness2: Uint8Array): Array<UnitStats> {
+        const cardHand: Array<RawCard> = draw_private_hand(randomness1, randomness2);
+        const hand: Array<UnitStats> = [];
+        for (const card of cardHand) {
+            hand.push(parseRawCard(card));
         }
-        return hand;
+        return hand
     }
 
     public setReveals(reveal1: Uint8Array, reveal2: Uint8Array) {
@@ -33,14 +25,14 @@ class WasmController {
         console.log(this.wasmState.get_game());
     }
 
-    public placePiece(x: number, y: number, unitType: UnitTypeWasm, controller: ControllerWasm) {
+    public placePiece(x: number, y: number, card: RawCard, controller: ControllerWasm) {
         console.log('placing piece')
-        return this.wasmState.place_piece(x, y, unitType, controller);
+        return this.wasmState.place_piece(x, y, card, controller);
     }
 
-    public placePieceWithId(id: number, x: number, y: number, unitType: UnitTypeWasm, controller: ControllerWasm) {
+    public placePieceWithId(id: number, x: number, y: number, card: RawCard | RawCardAnchor, controller: ControllerWasm) {
         console.log('placing piece')
-        return this.wasmState.place_piece_with_id(id, x, y, unitType, controller);
+        return this.wasmState.place_piece_with_id(id, x, y, card, controller);
     } 
 
     public step() {
@@ -49,7 +41,6 @@ class WasmController {
 
     public isSimulationOver() {
         const winCondition = this.wasmState.get_win_condition();
-        console.log(winCondition);
         if (winCondition !== 'InProgress') return true; 
         return false;
     }

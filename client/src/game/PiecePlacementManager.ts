@@ -10,7 +10,6 @@ import ContractController from "./ContractController";
 import DraggableEntity from "./DraggableEntity";
 import EntityManager from "./EntityManager";
 
-
 class PiecePlacementManager {
 
     private contractController?: ContractController
@@ -61,8 +60,8 @@ class PiecePlacementManager {
         window.addEventListener('mousedown', (event: MouseEvent)=>{
             this.mousedown();
         });
-        window.addEventListener('touchstart', (event: MouseEvent)=>{
-            this.mousedown();
+        window.addEventListener('touchstart', (event: TouchEvent)=>{
+            this.touchstart(event.touches[0].clientX, event.touches[0].clientY);
         });
 
     }
@@ -92,6 +91,24 @@ class PiecePlacementManager {
 
                     this.entityManager.draggableEntities.get(this.dragging).setGridPosition(new Vector2(gridX, gridY), this.entityManager.draggableEntities);
                 }
+            } else {
+                if (this.contractController !== undefined) {
+                    for (const [i, entity] of this.entityManager.draggableEntities) {
+                        const intersect: Array<THREE.Intersection> = entity.getRaycasterIntersection(this.raycaster)
+                        if (intersect.length > 0) {
+                            this.contractController.drawUnitData(true, entity.unitStats);
+                            return;
+                        }
+                    }
+                    for (const [i, entity] of this.entityManager.draggableEntities) {
+                        const intersect: Array<THREE.Intersection> = entity.getRaycasterIntersection(this.raycaster)
+                        if (intersect.length > 0) {
+                            this.contractController.drawUnitData(true, entity.unitStats);
+                            return;
+                        }
+                    }
+                    this.contractController.drawUnitData(false); 
+                }
             }
         }
     }
@@ -110,6 +127,10 @@ class PiecePlacementManager {
                 }
             }
         }
+    }
+    public touchstart(clientX: number, clientY: number){
+        this.mousemove(clientX, clientY);
+        this.mousedown()
     }
 
     public async mouseup(){

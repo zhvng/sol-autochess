@@ -1,5 +1,5 @@
 use anchor_lang::{prelude::*, solana_program::log::sol_log_compute_units};
-use super::{utils::Location, actions::{Action, Actions}, units::{UnitType, Unit, self}};
+use super::{utils::Location, actions::{Action, Actions}, units::{UnitType, UnitStats, Card, Rarity}};
 
 use serde;
 
@@ -9,40 +9,29 @@ pub struct Entities {
     pub counter: u16,
 }
 impl Entities {
-    /// For client use
-    pub fn create(&mut self, player: Controller, x: u16, y: u16, unit_type: UnitType) -> u16 {
-        let unit_map = units::get_unit_map();
-        let unit = unit_map.get(&unit_type).unwrap();
+    /// Create a piece but autofill the id
+    pub fn create(&mut self, player: Controller, x: u16, y: u16, card: Card) -> u16 {
         let id = self.counter;
-        self.all.push(Entity {
-            id,
-            owner: player,
-            target: None,
-            speed_multiplier: 100,
-            position: Location{x, y},
-            health: unit.starting_health,
-            unit_type,
-            state: EntityState::Idle,
-            stats: Some(unit.clone())
-        });
+        self.create_with_id(id, player, x, y, card);
         self.counter += 1;
         return id;
     }
 
-    /// For client use
-    pub fn create_with_id(&mut self, id: u16, player: Controller, x: u16, y: u16, unit_type: UnitType) -> u16 {
-        let unit_map = units::get_unit_map();
-        let unit = unit_map.get(&unit_type).unwrap();
+    pub fn create_with_id(&mut self, id: u16, player: Controller, x: u16, y: u16, card: Card) -> u16 {
+        let unit_type = card.unit_type;
+        let stats = &card.stats;
+        let rarity = card.rarity;
         self.all.push(Entity {
             id,
             owner: player,
             target: None,
             speed_multiplier: 100,
             position: Location{x, y},
-            health: unit.starting_health,
+            health: stats.starting_health,
             unit_type,
             state: EntityState::Idle,
-            stats: Some(unit.clone())
+            stats: Some(stats.clone()),
+            rarity: Some(rarity),
         });
         return id;
     }
@@ -65,27 +54,29 @@ impl Entities {
             unit_type: UnitType::Hidden{hand_position},
             state: EntityState::Idle,
             stats: None,
+            rarity: None,
         });
         self.counter += 1;
         return id;
     }
     /// Given a hand of unit types, reveal all hidden pieces on the board for a given player
-    pub fn reveal_all_hidden(&mut self, player: Controller, hand: &Vec<UnitType>) {
-        let unit_map = units::get_unit_map();
+    pub fn reveal_all_hidden(&mut self, player: Controller, hand: &Vec<Card>) {
         for entity in &mut self.all {
             if entity.owner == player {
                 match entity.unit_type {
                     UnitType::Hidden{hand_position} => {
-
-                        let unit_type = hand[hand_position as usize];
-                        let unit = unit_map.get(&unit_type).unwrap();
+                        let card = &hand[hand_position as usize];
+                        let unit_type = card.unit_type;
+                        let stats = &card.stats;
+                        let rarity = card.rarity;
 
                         entity.unit_type = unit_type;
-                        entity.health = unit.starting_health;
-                        entity.stats = Some(unit.clone());
+                        entity.health = stats.starting_health;
+                        entity.stats = Some(stats.clone());
+                        entity.rarity = Some(rarity);
                     },
                     _ => {
-                        // shouldn't reach here bc all pieces should be hidden
+                        panic!("shouldn't reach here bc all pieces should be hidden");
                     }
                 }
             }
@@ -164,7 +155,7 @@ impl Entities {
         entities
     }
 }
-#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Entity {
     pub id: u16,
     /// owner of the piece
@@ -181,7 +172,8 @@ pub struct Entity {
     pub unit_type: UnitType, 
     pub state: EntityState,
 
-    pub stats: Option<Unit>,
+    pub stats: Option<UnitStats>,
+    pub rarity: Option<Rarity>,
 }
 impl Entity {
     pub fn walk_or_aa(&self, actions: &mut Actions, all_entities: &Entities) {
@@ -209,7 +201,7 @@ impl Entity {
         };
         match target_entity {
             Some(result) => {
-                let stats = &self.stats.unwrap();
+                let stats = self.stats.as_ref().unwrap();
                 let aa_range: u16 = stats.attack_range;
                 let movement_speed: u16 = stats.movement_speed;
                 let attack_duration: u16 = stats.attack_duration;

@@ -14,6 +14,7 @@ import Game from "./Game";
 import { draw_private_hand, UnitTypeWasm } from "wasm-client";
 import EntityManager from "./EntityManager";
 import { UIComponent, UIController, UIReducerAction } from "pages/play/[id]";
+import { UnitStats } from "models/gameTypes";
 
 class ContractController {
     private _gameProgress: GameProgress;
@@ -163,6 +164,7 @@ class ContractController {
             setTimeout(()=>this.updateState(),500);
         } catch(error) {
             notify({ type: 'error', message: `Error!`, description: error?.message });
+            console.log(error)
             this.drawError();
         }
     }
@@ -342,7 +344,9 @@ class ContractController {
                     try {
                         await this.fetchGameState();
                     } catch(err) {
-                        console.log(err);
+                        if (err?.message.startsWith('Account does not exist')) {
+                            await this.cleanupBurner();
+                        }
                     }
 
                     break;
@@ -580,6 +584,24 @@ class ContractController {
             this.scene.add(gameOverObject);
         }
     } 
+
+    public drawUnitData(show: boolean, unitStats?: UnitStats) {
+        const unitDataIsShowing = this.uiController.uiState.get(UIComponent.UnitData).show;
+        const oldUnitStats = this.uiController.uiState.get(UIComponent.UnitData).unitStats;
+        // quick hack to prevent unit data from being redrawn every frame
+        const prevUnitIsDifferentFromCurrent = oldUnitStats !== undefined 
+            && unitStats !== undefined
+            && (oldUnitStats.unitType !== unitStats.unitType
+            || oldUnitStats.rarity !== unitStats.rarity);
+        if (show !== unitDataIsShowing || prevUnitIsDifferentFromCurrent) {
+            this.uiController.dispatchUIChange({
+                changes: new Map([
+                    [UIComponent.UnitData, {show, unitStats}]
+                ]) 
+            });
+        }
+    }
+
     private async cleanupBurner() {
         const balance = await this.getBurnerBalance();
         const drained = balance === 0 || await this.drainBurner();

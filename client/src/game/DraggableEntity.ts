@@ -5,6 +5,7 @@ import WasmController from "./WasmController";
 import HealthBar from "./HealthBar";
 import { Animations, boardCoordinatesTo3D, cloneModel, gridCoordinatesToBoardCoordinates, UnitState } from "./Utils";
 import TWEEN from '@tweenjs/tween.js';
+import { UnitStats } from "models/gameTypes";
 
 class DraggableEntity {
     private animations: Map<Animations, AnimationAction> = new Map();
@@ -16,11 +17,13 @@ class DraggableEntity {
     private unit: Group;
     private lastGridPosition: Vector2;
     constructor(
+        public readonly id,
         private readonly scene: Scene,
         gltf: GLTF,
         public gridPosition: Vector2,
         private readonly unitType: UnitTypeWasm,
         private readonly controller: ControllerWasm,
+        public readonly unitStats: Readonly<UnitStats>
     ) {
         // Clone model, add to scene and set the initial position.
         this.unit = new Group();

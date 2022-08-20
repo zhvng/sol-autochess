@@ -1,3 +1,5 @@
+import assert from "assert";
+import { RarityLevel, RawCard, RawCardAnchor, UnitStats } from "models/gameTypes";
 import { Bone, BoxBufferGeometry, Object3D, SkinnedMesh, Vector2, Vector3 } from "three"
 import { ControllerWasm, UnitTypeWasm } from "wasm-client";
 
@@ -32,23 +34,87 @@ export enum UnitState {
 }
 
 
-export const parseUnitTypeFromAnchor = (unitType: any): UnitTypeWasm | 'hidden' => {
-    
-    if (unitType['wolf'] !== undefined) {
-        return UnitTypeWasm.Wolf;
+export const parseUnitTypeFromAnchor = (unitType: string | {[key: string]: any}): UnitTypeWasm | 'hidden' => {
+    let unitTypeText = '';
+    if (typeof unitType === 'string') {
+        unitTypeText = unitType.toLowerCase();
+    } else {
+        unitTypeText = Object.keys(unitType)[0].toLowerCase();
     }
-    if (unitType['bear'] !== undefined) {
-        return UnitTypeWasm.Bear;
+    switch(unitTypeText) {
+        case 'wolf':
+            return UnitTypeWasm.Wolf;
+        case 'bear':
+            return UnitTypeWasm.Bear;
+        case 'bull':
+            return UnitTypeWasm.Bull;
+        case 'hidden':
+            return 'hidden';
+        default:
+            throw new Error('should never get here');
     }
-    if (unitType['bull'] !== undefined) {
-        return UnitTypeWasm.Bull;
-    }
-    if (unitType['hidden'] !== undefined) {
-        return 'hidden';
-    }
-
-    throw new Error('should never get here');
 }
+
+export const parseRarityFromAnchor = (rarity: string | {[key:string]: any}): RarityLevel => {
+    let rarityText = '';
+    if (typeof rarity === 'string') {
+        rarityText = rarity.toLowerCase();
+    } else {
+        rarityText = Object.keys(rarity)[0].toLowerCase();
+    }
+    switch(rarityText) {
+        case 'common':
+            return RarityLevel.Common;
+        case 'uncommon':
+            return RarityLevel.Uncommon;
+        case 'rare':
+            return RarityLevel.Rare;
+        case 'epic':
+            return RarityLevel.Epic;
+        case 'legendary':
+            return RarityLevel.Legendary;
+        case 'mythic':
+            return RarityLevel.Mythic;
+        default:
+            throw new Error('should never get here');
+    }
+}
+
+export const convertAnchorCardToRawCard = (anchorCard: RawCardAnchor): RawCard => {
+    return {
+        stats: {
+            attack_damage: anchorCard.stats.attackDamage,
+            attack_duration: anchorCard.stats.attackDuration,
+            attack_range: anchorCard.stats.attackRange,
+            crit_chance: anchorCard.stats.critChance,
+            movement_speed: anchorCard.stats.movementSpeed,
+            starting_health: anchorCard.stats.startingHealth,
+        },
+        unit_type: capitalize(Object.keys(anchorCard.unitType)[0]), 
+        rarity: capitalize(Object.keys(anchorCard.rarity)[0]),
+    }
+}
+function capitalize(s: string) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export const parseRawCard = (card: RawCard): UnitStats => {
+    const unitType = parseUnitTypeFromAnchor(card.unit_type);
+    if (unitType === 'hidden') {
+        throw new Error('hidden piece cannot be in a card');
+    }
+    return {
+        unitType: unitType as UnitTypeWasm,
+        attackDamage: card.stats.attack_damage,
+        startingHealth: card.stats.starting_health,
+        health: card.stats.starting_health, 
+        movementSpeed: card.stats.movement_speed,
+        range: card.stats.attack_range,
+        crit: card.stats.crit_chance,
+        rarity: parseRarityFromAnchor(card.rarity)
+    }
+}
+
 export const parseControllerFromAnchor = (controller: any): ControllerWasm => {
     if(controller['initializer'] !== undefined) return ControllerWasm.Initializer;
     if(controller['opponent'] !== undefined) return ControllerWasm.Opponent;

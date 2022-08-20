@@ -5,6 +5,7 @@ import WasmController from "./WasmController";
 import HealthBar from "./HealthBar";
 import { Animations, boardCoordinatesTo3D, cloneModel, gridCoordinatesToBoardCoordinates, UnitState } from "./Utils";
 import TWEEN from '@tweenjs/tween.js';
+import { UnitStats } from "models/gameTypes";
 
 class Entity {
     private movementTarget?: Vector3;
@@ -17,6 +18,7 @@ class Entity {
     private healthBar: HealthBar;
     private unit: Group;
     constructor(
+        public readonly id: number,
         private readonly scene: Scene,
         private readonly wasmController: WasmController,
         gltf: GLTF,
@@ -24,13 +26,13 @@ class Entity {
         public initialBoardPosition: Vector2,
         private readonly unitType: UnitTypeWasm,
         private readonly controller: ControllerWasm,
-        startingHealth: number,
+        public readonly unitStats: Readonly<UnitStats>,
     ) {
         // clone model, add to scene and set the initial position.
         this.unit = new Group();
         this.model = cloneModel(gltf.scene) as Group;
         // Add health bar
-        this.healthBar = new HealthBar(this.unit, this.controller, startingHealth);
+        this.healthBar = new HealthBar(this.unit, this.controller, unitStats.startingHealth);
         // add to unit
         this.unit.add(this.model);
         this.scene.add(this.unit);
