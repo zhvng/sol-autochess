@@ -80,6 +80,32 @@ describe('autochess', async () => {
       }
     }]));
   });
+  it('Invalid create game', async () => {
+    const pdaKey = (await anchor.web3.PublicKey.findProgramAddress(
+      [
+        Buffer.from("game 3"),
+        Buffer.from('Game'),
+      ],
+      program.programId
+    ))[0];
+    await assert.rejects(async () => {
+      await program.rpc.createGame(
+        "game 3", 
+        iBurner.publicKey.toBytes(),
+        new anchor.BN(anchor.web3.LAMPORTS_PER_SOL), 
+        initializerCommitment1, 
+        initializerCommitment2, 
+        5,
+        9,
+        {
+          accounts: {
+            game: pdaKey,
+            initializer: program.provider.wallet.publicKey,
+            systemProgram: anchor.web3.SystemProgram.programId,
+          },
+      });
+    }, "Invalid game settings should be rejected");
+  });
 
   it('joins!', async () => {
     await program.rpc.joinGame(
