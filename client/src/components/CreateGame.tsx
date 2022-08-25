@@ -61,6 +61,8 @@ export const CreateGame: FC = () => {
                 new anchor.BN(wagerLamports), 
                 Uint8Array.from(gameInputs.commitment1), 
                 Uint8Array.from(gameInputs.commitment2), 
+                5,
+                8,
                 {
                     accounts: {
                         game: gamePDAKey,

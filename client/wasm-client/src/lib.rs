@@ -128,9 +128,9 @@ impl WasmState {
 }
 
 #[wasm_bindgen]
-pub fn draw_private_hand(finished_reveal_1: &[u8], player_reveal_2: &[u8]) -> JsValue {
+pub fn draw_private_hand(hand_size: u8, finished_reveal_1: &[u8], player_reveal_2: &[u8]) -> JsValue {
     JsValue::from_serde(
-        &draw_hand(finished_reveal_1.try_into().expect("slice with incorrect length"), 
+        &draw_hand(hand_size, finished_reveal_1.try_into().expect("slice with incorrect length"), 
             player_reveal_2.try_into().expect("slice with incorrect length")
         )).unwrap()
 }

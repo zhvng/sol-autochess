@@ -19,6 +19,8 @@ pub struct Game {
     /// 5 - Game is finished. Waiting for winning player to withdraw funds.
     pub state: u8,
     pub wager: u64,
+    pub piece_limit: u8,
+    pub hand_size: u8,
     pub win_condition: WinCondition,
 
     pub initializer: Pubkey,
@@ -101,7 +103,7 @@ impl Game {
     ///  - 3 pieces max for initializer/opponent 
     ///  - in bounds and on the right side
     /// n is how many additional pieces we want to place (1 for basic place, 0 for move)
-    fn can_place(&self, player: entities::Controller, x: u16, y: u16, n: u16) -> bool {
+    fn can_place(&self, player: entities::Controller, x: u16, y: u16, n: u8) -> bool {
         // must place in bounds
         if x > 800 || y > 800 {
             return false;
@@ -112,8 +114,7 @@ impl Game {
                 if y > 400 {
                     return false;
                 }
-                // For now, we're doing 3 vs 3. But subject to change
-                if self.entities.count_for_controller(player) + n > 3 {
+                if self.entities.count_for_controller(player) + n > self.piece_limit {
                     return false;
                 }
             },
@@ -121,8 +122,7 @@ impl Game {
                 if y < 400 {
                     return false;
                 }
-
-                if self.entities.count_for_controller(player) + n > 3 {
+                if self.entities.count_for_controller(player) + n > self.piece_limit {
                     return false;
                 }
             },
@@ -183,7 +183,7 @@ impl Game {
                 return None;
             }
             // Hand position must be in bounds
-            if hand_position >= 5 {
+            if hand_position >= self.hand_size {
                 return None;
             }
             // Hand position must be unique
@@ -216,7 +216,7 @@ impl Game {
                 return None;
             }
             // Hand position must be in bounds
-            if hand_position >= 5 {
+            if hand_position >= self.hand_size {
                 return None;
             }
 
@@ -247,7 +247,7 @@ impl Game {
             return None;
         }
         // Hand position must be in bounds
-        if hand_position >= 5 {
+        if hand_position >= self.hand_size {
             return None;
         }
         // delete if we find the hand position, otherwise fail
@@ -269,7 +269,7 @@ impl Game {
     }
     /// Using second reveal, simulate the player's draw. Then fill in identities of the hidden pieces.
     pub fn reveal_hidden_pieces(&mut self, player: entities::Controller, reveal_2: &[u8; 32]) {
-        let hand = draw_hand(&self.reveal_1.unwrap(), reveal_2);
+        let hand = draw_hand(self.hand_size, &self.reveal_1.unwrap(), reveal_2);
         self.entities.reveal_all_hidden(player, &hand);
     }
 
@@ -469,8 +469,8 @@ fn get_from_p_array<T: Clone>(array: &[(T, u8)], random: u8) -> T {
     panic!("random_in_range {} is out of range", random_in_range);
 }
 
-/// Draw from deck using randomness of first reveal and second commit. Client side, but verified on chain.
-pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::Card> {
+/// Draw HAND_SIZE cards from deck using randomness of first reveal and second commit. Client side, but verified on chain.
+pub fn draw_hand(hand_size: u8, randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::Card> {
     // XOR randomness together
     msg!("drawing");
     let mut reveal = randomness1.clone();
@@ -479,7 +479,6 @@ pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::C
         .for_each(|(x1, x2)| *x1 ^= *x2);
 
     let mut result: Vec<units::Card> = Vec::new();
-    let n = 5; //number of cards to draw
 
     // Array of unit type and the relative probability
     let deck = [
@@ -503,7 +502,7 @@ pub fn draw_hand(randomness1: &[u8; 32], randomness2: &[u8; 32]) -> Vec<units::C
     ];
 
     let mut randomness = generate_new_randomness(&reveal);
-    for _ in 0..n {
+    for _ in 0..hand_size {
         let rnd_unit_type = randomness[0]; //random u8 between 0 and 255
         let rnd_rarity = randomness[1]; //random u8 between 0 and 255
         let rnd_special_trait = randomness[2]; //random u8 between 0 and 255
