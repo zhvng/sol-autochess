@@ -277,8 +277,16 @@ class ContractController {
                             Uint8Array.from(this.lastGameState.reveal2),
                         );
                         this.gameProgress = GameProgress.InProgress;
-                        setTimeout(() => {this.entityManager.simulationStarted = true;}, 5000)
-                        setTimeout(()=> this.updateState(), 10000);
+                        setTimeout(() => {
+                            this.entityManager.updateGame();
+
+                            if (this.entityManager.simulationEnded) {
+                                setTimeout(()=> this.updateState(), 100);
+                            } else {
+                                setTimeout(() => {this.entityManager.simulationStarted = true;}, 5000)
+                                setTimeout(()=> this.updateState(), 10000);
+                            }
+                        }, 1000);
                         return;
                     }
                     break;
@@ -592,6 +600,7 @@ class ContractController {
             && unitStats !== undefined
             && (oldUnitStats.unitType !== unitStats.unitType
             || oldUnitStats.rarity !== unitStats.rarity
+            || oldUnitStats.health !== unitStats.health
             || oldUnitStats.specialTrait !== unitStats.specialTrait);
         if (show !== unitDataIsShowing || prevUnitIsDifferentFromCurrent) {
             this.uiController.dispatchUIChange({

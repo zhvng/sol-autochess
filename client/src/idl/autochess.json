@@ -912,6 +912,25 @@
             "name": "Dead"
           },
           {
+            "name": "Airborne",
+            "fields": [
+              {
+                "name": "progress",
+                "type": "u16"
+              },
+              {
+                "name": "finish_on",
+                "type": "u16"
+              },
+              {
+                "name": "to",
+                "type": {
+                  "defined": "Location"
+                }
+              }
+            ]
+          },
+          {
             "name": "Attack",
             "fields": [
               {

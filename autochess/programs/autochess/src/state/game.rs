@@ -322,8 +322,10 @@ impl Game {
         for entity in &self.entities.all.clone() {
             if entity.owner == entities::Controller::Initializer || entity.owner == entities::Controller::Opponent {
 
-                if self.tick == 0 && entity.special_trait == Some(SpecialTrait::Assassin) {
-                    entity.assassin_hop(&mut actions);
+                if self.tick == 0 {
+                    if entity.special_trait == Some(SpecialTrait::Assassin) {
+                        entity.assassin_hop(&mut actions);
+                    }
                 } else {
                     match entity.state {
                         entities::EntityState::Idle => {
@@ -334,7 +336,7 @@ impl Game {
                         },
                         entities::EntityState::Attack{progress, attack_on, target_id} => {
                             let new_progress = progress + 1;
-                            if new_progress == attack_on {
+                            if new_progress >= attack_on {
                                 let stats = entity.stats.as_ref().unwrap();
 
                                 let mut attack_damage = stats.attack_damage;
@@ -352,6 +354,20 @@ impl Game {
                                 });
                             }
                         },
+                        entities::EntityState::Airborne { progress, finish_on, to } => {
+                            let new_progress = progress + 1;
+                            if new_progress >= finish_on {
+                                actions.add(entity.id, Action::Move { to });
+                                actions.add(entity.id, Action::EntityStateChange { state: EntityState::Idle });
+                            } else {
+                                let distance = entity.position.distance(&to);
+                                let move_to = entity.position.move_towards(&to, distance, distance / finish_on);
+                                actions.add(entity.id, Action::Move { to: move_to});
+                                actions.add(entity.id, Action::EntityStateChange { 
+                                    state: EntityState::Airborne { progress: new_progress, finish_on, to }
+                                });
+                            }
+                        }
                         _other=>{}
                     }
                 }

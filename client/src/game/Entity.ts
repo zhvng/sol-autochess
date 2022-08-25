@@ -27,7 +27,7 @@ class Entity {
         public initialBoardPosition: Vector2,
         private readonly unitType: UnitTypeWasm,
         private readonly controller: ControllerWasm,
-        public readonly unitStats: Readonly<UnitStats>,
+        public readonly unitStats: UnitStats,
     ) {
         // clone model, add to scene and set the initial position.
         this.unit = new Group();
@@ -112,12 +112,15 @@ class Entity {
         TWEEN.update()
 
         if (this.mixer !== undefined) this.mixer.update( timeElapsed / 1000 );
-        if (this.movementTarget !== undefined && this.state !== UnitState.Dead) {
+        if (this.state === UnitState.Airborne) {
+            
+        } else if (this.movementTarget !== undefined && this.state !== UnitState.Dead) {
             const displacementVector = this.movementTarget.clone().sub(this.unit.position);
             const timeRatio = timeElapsed/this.logicUpdatePeriod;
             const newPosition = this.unit.position.clone().add(displacementVector.clone().multiplyScalar(timeRatio));
-            this.smoothLookAt(this.unit, this.movementTarget, 300);
             this.unit.position.set(newPosition.x, newPosition.y, newPosition.z);
+        } else {
+            console.log('aaaaaa');
         }
         if (this.healthBar !== undefined) {
             this.healthBar.update(timeElapsed);
@@ -128,6 +131,24 @@ class Entity {
             const targetPosition = e.state['Moving'].to;
             this.setMovementTarget(new Vector2(targetPosition.x, targetPosition.y));
             this.setState(UnitState.Moving);
+        } else if (e.state['Airborne'] !== undefined) {
+            if (this.state !== UnitState.Airborne) {
+                const targetPosition = e.state['Airborne'].to;
+                const target = boardCoordinatesTo3D(new Vector2(targetPosition.x, targetPosition.y));
+                const duration = e.state['Airborne'].finish_on;
+                const displacement = target.clone().sub(this.unit.position);
+                const initialPosition = this.unit.position.clone();
+                new TWEEN.Tween({t: 0})
+                    .to({t: 1}, (duration + 1) * this.logicUpdatePeriod)
+                    .onUpdate(({t}) => {
+                        // this.unit.position.lerp(target, t);
+                        this.unit.position.setX((initialPosition.x + displacement.x * t));
+                        this.unit.position.setZ((initialPosition.z + displacement.z * t));
+                        this.unit.position.setY((0.25 - (t-0.5)**2) * 30);
+                    })
+                    .start();
+                this.setState(UnitState.Airborne);
+            }
         } else {
             this.stopMoving();
         }
@@ -151,10 +172,15 @@ class Entity {
         if (e.state === 'Dead') {
             this.setState(UnitState.Dead);
         }
-
         // update info
         if (e['health'] !== undefined) {
             this.healthBar.updateGame(e.health);
+            this.unitStats.health = (e.health as number)
+        }
+
+        // smooth lookat
+        if (this.movementTarget !== undefined) {
+            this.smoothLookAt(this.unit, this.movementTarget, 300);
         }
     }
 
@@ -210,7 +236,7 @@ class Entity {
     }
     public stopMoving() {
         if (this.movementTarget !== undefined) {
-            this.unit.position.lerp(new Vector3(this.movementTarget.x, this.movementTarget.y, this.movementTarget.z), .1);
+            this.unit.position.lerp(new Vector3(this.movementTarget.x, this.movementTarget.y, this.movementTarget.z), 0.1);
             this.movementTarget = undefined;
         }
     }

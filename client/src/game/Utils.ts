@@ -31,6 +31,7 @@ export enum UnitState {
     Attacking,
     Idle,
     Dead,
+    Airborne
 }
 
 
