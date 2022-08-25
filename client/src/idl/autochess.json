@@ -56,6 +56,14 @@
               32
             ]
           }
+        },
+        {
+          "name": "pieceLimit",
+          "type": "u8"
+        },
+        {
+          "name": "handSize",
+          "type": "u8"
         }
       ]
     },
@@ -427,6 +435,14 @@
           {
             "name": "wager",
             "type": "u64"
+          },
+          {
+            "name": "pieceLimit",
+            "type": "u8"
+          },
+          {
+            "name": "handSize",
+            "type": "u8"
           },
           {
             "name": "winCondition",
@@ -1155,6 +1171,11 @@
       "code": 6003,
       "name": "LockInError",
       "msg": "Error locking in pieces. Game state has changed."
+    },
+    {
+      "code": 6004,
+      "name": "InvalidGameSettings",
+      "msg": "Invalid game settings"
     }
   ],
   "metadata": {

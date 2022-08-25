@@ -9,8 +9,8 @@ class WasmController {
         this.wasmState = new WasmState();
     }
 
-    public drawHand(randomness1: Uint8Array, randomness2: Uint8Array): Array<UnitStats> {
-        const cardHand: Array<RawCard> = draw_private_hand(randomness1, randomness2);
+    public drawHand(handSize: number, randomness1: Uint8Array, randomness2: Uint8Array): Array<UnitStats> {
+        const cardHand: Array<RawCard> = draw_private_hand(handSize, randomness1, randomness2);
         console.log(cardHand);
         const hand: Array<UnitStats> = [];
         for (const card of cardHand) {

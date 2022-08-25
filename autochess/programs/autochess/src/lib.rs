@@ -15,11 +15,19 @@ pub mod autochess {
     /// Commitments are provided for to hide info until its reveal later.
     /// Send a burner wallet for fees for a smoother ux
     /// Set state to 0
-    pub fn create_game(ctx: Context<CreateGame>, _game_id: String, burner_wallet: [u8; 32], wager: u64, commitment_1: [u8; 32], commitment_2: [u8; 32]) -> ProgramResult {
+    pub fn create_game(ctx: Context<CreateGame>, _game_id: String, burner_wallet: [u8; 32], wager: u64, commitment_1: [u8; 32], commitment_2: [u8; 32], piece_limit: u8, hand_size: u8) -> ProgramResult {
+        // array of (piece_limit, hand_size)
+        let valid_game_settings: Vec<(u8, u8)> = vec![(5, 8)];
+        if !valid_game_settings.contains(&(piece_limit, hand_size)) {
+            return Err(ErrorCode::InvalidGameSettings.into());
+        }
+
         let game = &mut ctx.accounts.game;
         game.initialize_default();
         game.initializer = *ctx.accounts.initializer.key;
         game.wager = wager;
+        game.piece_limit = piece_limit;
+        game.hand_size = hand_size;
         game.i_commitment_1 = Some(commitment_1);
         game.i_commitment_2 = Some(commitment_2);
 
@@ -561,4 +569,6 @@ pub enum ErrorCode {
     ClaimError,
     #[msg("Error locking in pieces. Game state has changed.")]
     LockInError,
+    #[msg("Invalid game settings")]
+    InvalidGameSettings,
 }

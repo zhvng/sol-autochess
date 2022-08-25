@@ -116,8 +116,8 @@ impl Entities {
         None
     }
 
-    pub fn count_for_controller(&self, controller: Controller) -> u16 {
-        let mut count: u16 = 0;
+    pub fn count_for_controller(&self, controller: Controller) -> u8 {
+        let mut count: u8 = 0;
         for entity in &self.all {
             if entity.owner == controller {
                 count += 1;

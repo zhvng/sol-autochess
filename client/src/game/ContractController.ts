@@ -224,7 +224,7 @@ class ContractController {
                 case GameProgress.DrawPieces:
                     if (this.entityManager.loading === false ) {
                         await this.fetchGameState();
-                        this.entityManager.drawAndPlaceHand(Uint8Array.from(this.lastGameState.reveal1), 
+                        this.entityManager.drawAndPlaceHand(this.lastGameState.handSize, Uint8Array.from(this.lastGameState.reveal1), 
                             Uint8Array.from(this.gameInputs.reveal2), this.isInitializer);
                         this.gameProgress = GameProgress.PlacePieces;
                         setTimeout(()=>this.updateState(),200);
