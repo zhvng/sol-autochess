@@ -1,8 +1,6 @@
-import { AnchorWallet, useAnchorWallet, useWallet } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { Connection, Keypair, SystemProgram, Transaction, TransactionInstruction, TransactionSignature } from '@solana/web3.js';
-import { FC, useCallback, useEffect, useState } from 'react';
-import useBurnerWalletStore from 'stores/useBurnerWalletStore';
+import { useAnchorWallet } from '@solana/wallet-adapter-react';
+import { Keypair, SystemProgram, TransactionInstruction } from '@solana/web3.js';
+import { FC, useCallback, useState } from 'react';
 import { getProgram } from 'utils/program';
 import { notify } from "../utils/notifications";
 import * as anchor from "@project-serum/anchor";
@@ -10,7 +8,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { clearGameInputs, createGameInputs } from 'utils/gameInputs';
 import useUserSOLBalanceStore from 'stores/useUserSOLBalanceStore';
 import { useConnectionWrapper } from 'hooks/useConnectionWrapper';
-import { RequestAirdrop } from './RequestAirdrop';
 
 export const CreateGame: FC = () => {
     const wallet = useAnchorWallet();
@@ -49,7 +46,7 @@ export const CreateGame: FC = () => {
             const burnerWallet = Keypair.fromSecretKey(Uint8Array.from(gameInputs.burnerWalletSecret));
 
             const topUpBurnerWalletIx: TransactionInstruction = SystemProgram.transfer({
-                fromPubkey: program.provider.wallet.publicKey,
+                fromPubkey: program.provider.publicKey,
                 toPubkey: burnerWallet.publicKey,
                 lamports: Math.floor(anchor.web3.LAMPORTS_PER_SOL / 500), // .001 sol to cover tx fees
             });
@@ -66,7 +63,7 @@ export const CreateGame: FC = () => {
                 {
                     accounts: {
                         game: gamePDAKey,
-                        initializer: program.provider.wallet.publicKey,
+                        initializer: program.provider.publicKey,
                         systemProgram: SystemProgram.programId,
                     },
                     postInstructions: [

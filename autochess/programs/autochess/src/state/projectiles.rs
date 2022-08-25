@@ -1,71 +1,71 @@
-use anchor_lang::{prelude::*};
-use super::{utils::Location};
+// use anchor_lang::{prelude::*};
+// use super::{utils::Location};
 
-#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
-pub struct Projectiles {
-    pub all: Vec<Projectile>,
-}
-
-impl Projectiles {
-    pub fn get(&mut self) {
-        for projectile in &mut self.all {
-            match projectile {
-                Projectile::RangedAttack(p) => p.step(),
-                Projectile::Explosion(p) => p.step(),
-                Projectile::None => {},
-            }
-        }
-    }
-}
-
-// #[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone, Copy)]
-// pub struct Projectile {
-//     position: Location,
-//     speed: u16,
-//     target: Entity,
+// #[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
+// pub struct Projectiles {
+//     pub all: Vec<Projectile>,
 // }
 
-#[derive(Debug, AnchorDeserialize, AnchorSerialize, Clone)]
-pub enum Projectile {
-    None,
-    RangedAttack(RangedAttack),
-    Explosion(Explosion),
-}
+// impl Projectiles {
+//     pub fn get(&mut self) {
+//         for projectile in &mut self.all {
+//             match projectile {
+//                 Projectile::RangedAttack(p) => p.step(),
+//                 Projectile::Explosion(p) => p.step(),
+//                 Projectile::None => {},
+//             }
+//         }
+//     }
+// }
 
-pub trait ProjectileTrait {
-    fn step(&mut self);
-}
+// // #[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone, Copy)]
+// // pub struct Projectile {
+// //     position: Location,
+// //     speed: u16,
+// //     target: Entity,
+// // }
 
-#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
-pub struct RangedAttack {
-    pub position: Location,
-    pub target_id: u16,
-}
+// #[derive(Debug, AnchorDeserialize, AnchorSerialize, Clone)]
+// pub enum Projectile {
+//     None,
+//     RangedAttack(RangedAttack),
+//     Explosion(Explosion),
+// }
 
-impl ProjectileTrait for RangedAttack {
-    fn step(&mut self) {
-        self.position.x = self.position.x + 1 ;
-    }
-}
-#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
-pub struct Explosion {
-    pub position: Location,
-    pub target_id: u16,
-}
-impl ProjectileTrait for Explosion {
-    fn step(&mut self) {
-        self.position.x = self.position.x + 21 ;
-    }
-}
+// pub trait ProjectileTrait {
+//     fn step(&mut self);
+// }
 
-#[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
-pub struct StaticTarget {
-    pub position: Location,
-    pub target: Location,
-}
+// #[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
+// pub struct RangedAttack {
+//     pub position: Location,
+//     pub target_id: u16,
+// }
 
-impl Default for Projectile {
-    fn default() -> Projectile {
-        Projectile::None
-    }
-}
+// impl ProjectileTrait for RangedAttack {
+//     fn step(&mut self) {
+//         self.position.x = self.position.x + 1 ;
+//     }
+// }
+// #[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
+// pub struct Explosion {
+//     pub position: Location,
+//     pub target_id: u16,
+// }
+// impl ProjectileTrait for Explosion {
+//     fn step(&mut self) {
+//         self.position.x = self.position.x + 21 ;
+//     }
+// }
+
+// #[derive(Debug, Default, AnchorDeserialize, AnchorSerialize, Clone)]
+// pub struct StaticTarget {
+//     pub position: Location,
+//     pub target: Location,
+// }
+
+// impl Default for Projectile {
+//     fn default() -> Projectile {
+//         Projectile::None
+//     }
+// }

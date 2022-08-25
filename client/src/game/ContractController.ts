@@ -118,9 +118,9 @@ class ContractController {
         try {
             const account = await this.fetchGameState();
             this.isInitializer = true;
-            if ((account.initializer as PublicKey).toBase58() === this.program.provider.wallet.publicKey.toBase58()) {
+            if ((account.initializer as PublicKey).toBase58() === this.program.provider.publicKey.toBase58()) {
                 this.isInitializer = true;
-            } else if ((account.opponent as PublicKey).toBase58() === this.program.provider.wallet.publicKey.toBase58()) {
+            } else if ((account.opponent as PublicKey).toBase58() === this.program.provider.publicKey.toBase58()) {
                 this.isInitializer = false;
             } else {
                 //you're not in this game lmao
@@ -615,7 +615,7 @@ class ContractController {
         const balance = await this.getBurnerBalance();
         const drained = balance === 0 || await this.drainBurner();
         if (drained) {
-            clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
+            clearGameInputs(this.gamePDAKey, this.program.provider.publicKey);
             window.location.href = '/';
         }
     }
@@ -627,7 +627,7 @@ class ContractController {
             await this.program.rpc.claimVictory({
                 accounts: {
                   game: this.gamePDAKey,
-                  invoker: this.program.provider.wallet.publicKey,
+                  invoker: this.program.provider.publicKey,
                   initializer: this.lastGameState.initializer,
                   opponent: this.lastGameState.opponent,
                 },
@@ -656,7 +656,7 @@ class ContractController {
         return this.program.instruction.drainBurner({
             accounts: {
                 burner: this.burnerWallet.publicKey,
-                main: this.program.provider.wallet.publicKey,
+                main: this.program.provider.publicKey,
                 systemProgram: SystemProgram.programId,
             }
         });
@@ -689,7 +689,7 @@ class ContractController {
             signature = await this.program.rpc.claimInactivity({
                 accounts: {
                   game: this.gamePDAKey,
-                  invoker: this.program.provider.wallet.publicKey,
+                  invoker: this.program.provider.publicKey,
                   initializer: this.lastGameState!.initializer,
                   clock: web3.SYSVAR_CLOCK_PUBKEY,
                 },
@@ -701,7 +701,7 @@ class ContractController {
                 ]
             });
             notify({ type: 'success', message: 'Transaction successful!', txid: signature });
-            clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
+            clearGameInputs(this.gamePDAKey, this.program.provider.publicKey);
             window.location.href = '/';
         } catch (error: any) {
             notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });
@@ -801,7 +801,7 @@ class ContractController {
             signature = await this.program.rpc.cancelGame({
                 accounts: {
                     game: this.gamePDAKey,
-                    initializer: this.program.provider.wallet.publicKey,
+                    initializer: this.program.provider.publicKey,
                     systemProgram: web3.SystemProgram.programId,
                 }, 
                 postInstructions: [
@@ -812,7 +812,7 @@ class ContractController {
                 ]
             });
             notify({ type: 'success', message: 'Transaction successful!', txid: signature });
-            clearGameInputs(this.gamePDAKey, this.program.provider.wallet.publicKey);
+            clearGameInputs(this.gamePDAKey, this.program.provider.publicKey);
             window.location.href = '/';
         } catch (error: any) {
             notify({ type: 'error', message: `Transaction failed!`, description: error?.message, txid: signature });

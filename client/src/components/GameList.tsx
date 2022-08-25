@@ -23,7 +23,7 @@ const GameList = () => {
   }, [connection, wallet]);
 
   const loadAccounts = () => {
-    if (connection !== undefined) {
+    if (connection !== undefined && wallet !== undefined) {
       const program = getProgram(wallet, connection);
       getGameList(program);
     }
