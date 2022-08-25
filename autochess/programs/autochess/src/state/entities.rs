@@ -31,6 +31,7 @@ impl Entities {
             health: stats.starting_health,
             unit_type,
             state: EntityState::Idle,
+            // buffs: Vec::new(),
             stats: Some(stats.clone()),
             rarity: Some(rarity),
             special_trait,
@@ -55,6 +56,7 @@ impl Entities {
             health: 0,
             unit_type: UnitType::Hidden{hand_position},
             state: EntityState::Idle,
+            // buffs: Vec::new(),
             stats: None,
             rarity: None,
             special_trait: None,
@@ -175,6 +177,7 @@ pub struct Entity {
     pub health: u16,
     /// Type of unit this is
     pub unit_type: UnitType, 
+
     pub state: EntityState,
 
     pub stats: Option<UnitStats>,
@@ -236,21 +239,17 @@ impl Entity {
     pub fn assassin_hop(&self, actions: &mut Actions) {
         // move to back row of board
         let move_to = if self.owner == Controller::Initializer {
-            let to = Location {
+            Location {
                 x: self.position.x,
-                y: 800,
-            };
-            actions.add(self.id, Action::Move { to });
-            to
+                y: 770,
+            }
         } else {
-            let to = Location {
+            Location {
                 x: self.position.x,
-                y: 0,
-            };
-            actions.add(self.id, Action::Move { to }); 
-            to
+                y: 30,
+            }
         };
-        actions.add(self.id, Action::EntityStateChange { state: EntityState::Moving{to: move_to} });
+        actions.add(self.id, Action::EntityStateChange { state: EntityState::Airborne { progress: 0, finish_on: 2, to: move_to } });
     }
 }
 
@@ -259,10 +258,17 @@ pub enum EntityState {
     Idle,
     Moving{to: Location},
     Dead,
+    Airborne{progress: u16, finish_on: u16, to: Location},
     Attack{progress: u16, attack_on: u16, target_id: u16},
     Ability{progress: u16, cast_on: u16, release_on: u16},
     Ult{progress: u16, cast_on: u16, release_on: u16},
 }
+
+// #[derive(Debug, PartialEq, Clone, AnchorSerialize, AnchorDeserialize, Copy, serde::Serialize, serde::Deserialize)]
+// pub enum EntityBuff {
+//     Untargetable{duration: u16},
+// }
+
 /// Enum denoting owner of an entity
 #[derive(Debug, PartialEq, AnchorDeserialize, AnchorSerialize, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum Controller {
