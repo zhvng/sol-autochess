@@ -10,7 +10,7 @@ const program = anchor.workspace.Autochess as Program<Autochess>;
 describe('autochess', async () => {
 
   // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.Provider.env());
+  anchor.setProvider(anchor.AnchorProvider.env());
 
   const opponent = anchor.web3.Keypair.generate();
   const iBurner = anchor.web3.Keypair.generate();
@@ -67,12 +67,12 @@ describe('autochess', async () => {
       {
         accounts: {
           game: gamePDAKey,
-          initializer: program.provider.wallet.publicKey,
+          initializer: program.provider.publicKey,
           systemProgram: anchor.web3.SystemProgram.programId,
         },
     });
     const account = await program.account.game.fetch(gamePDAKey);
-    assert.deepStrictEqual(account.initializer, program.provider.wallet.publicKey, 'Account was not correctly initialized');
+    assert.deepStrictEqual(account.initializer, program.provider.publicKey, 'Account was not correctly initialized');
     console.log(await program.account.game.all([{
       memcmp: {
         offset: 8,
@@ -100,7 +100,7 @@ describe('autochess', async () => {
         {
           accounts: {
             game: pdaKey,
-            initializer: program.provider.wallet.publicKey,
+            initializer: program.provider.publicKey,
             systemProgram: anchor.web3.SystemProgram.programId,
           },
       });
@@ -141,7 +141,7 @@ describe('autochess', async () => {
       {
         accounts: {
           game: canceledGameKey,
-          initializer: program.provider.wallet.publicKey,
+          initializer: program.provider.publicKey,
           systemProgram: anchor.web3.SystemProgram.programId,
         },
     });
@@ -157,7 +157,7 @@ describe('autochess', async () => {
     await program.rpc.cancelGame({
       accounts: {
         game: canceledGameKey,
-        initializer: program.provider.wallet.publicKey,
+        initializer: program.provider.publicKey,
       },
     });
     assert.rejects(async () => {
@@ -507,7 +507,7 @@ describe('autochess', async () => {
         accounts: {
           game: gamePDAKey,
           invoker: opponent.publicKey,
-          initializer: program.provider.wallet.publicKey,
+          initializer: program.provider.publicKey,
           opponent: opponent.publicKey,
         },
         signers: [opponent],
@@ -541,17 +541,17 @@ describe('autochess', async () => {
   });
 
   it('correct claim', async ()=>{
-    const account = await program.account.game.getAccountInfo(program.provider.wallet.publicKey);
+    const account = await program.account.game.getAccountInfo(program.provider.publicKey);
     let lamports = account.lamports;
     await program.rpc.claimVictory({
       accounts: {
         game: gamePDAKey,
-        invoker: program.provider.wallet.publicKey,
-        initializer: program.provider.wallet.publicKey,
+        invoker: program.provider.publicKey,
+        initializer: program.provider.publicKey,
         opponent: opponent.publicKey,
       },
     });
-    lamports -= (await program.account.game.getAccountInfo(program.provider.wallet.publicKey)).lamports;
+    lamports -= (await program.account.game.getAccountInfo(program.provider.publicKey)).lamports;
     assert.deepStrictEqual(lamports, -2005757888, 'Incorrect lamports deposited');
   });
 
@@ -576,7 +576,7 @@ describe('autochess', async () => {
       {
         accounts: {
           game: inactiveGameKey,
-          initializer: program.provider.wallet.publicKey,
+          initializer: program.provider.publicKey,
           systemProgram: anchor.web3.SystemProgram.programId,
         },
     });
@@ -604,7 +604,7 @@ describe('autochess', async () => {
         accounts: {
           game: inactiveGameKey,
           invoker: opponent.publicKey,
-          initializer: program.provider.wallet.publicKey,
+          initializer: program.provider.publicKey,
           clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
         },
         signers: [opponent]
@@ -620,7 +620,7 @@ describe('autochess', async () => {
           accounts: {
             game: inactiveGameKey,
             invoker: opponent.publicKey,
-            initializer: program.provider.wallet.publicKey,
+            initializer: program.provider.publicKey,
             clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
           },
           signers: [opponent]

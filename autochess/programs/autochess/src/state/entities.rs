@@ -278,7 +278,7 @@ pub enum Controller {
     Graveyard = 3,
 }
 
-#[derive(Debug, AnchorDeserialize, AnchorSerialize, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct EntityResult<'a> {
     pub entity: &'a Entity,
     pub distance: u16,

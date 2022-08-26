@@ -28,7 +28,7 @@ export const JoinGame = ({gamePDAKey}) => {
             const burnerWallet = Keypair.fromSecretKey(Uint8Array.from(gameInputs.burnerWalletSecret));
 
             const topUpBurnerWalletIx: TransactionInstruction = SystemProgram.transfer({
-                fromPubkey: program.provider.wallet.publicKey,
+                fromPubkey: program.provider.publicKey,
                 toPubkey: burnerWallet.publicKey,
                 lamports: Math.floor(anchor.web3.LAMPORTS_PER_SOL / 500), // .001 sol to cover tx fees
             });
@@ -39,7 +39,7 @@ export const JoinGame = ({gamePDAKey}) => {
                 Uint8Array.from(gameInputs.commitment2), {
                 accounts: {
                     game: gamePDAKey,
-                    invoker: program.provider.wallet.publicKey,
+                    invoker: program.provider.publicKey,
                     systemProgram: anchor.web3.SystemProgram.programId,
                 },
                 postInstructions: [

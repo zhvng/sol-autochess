@@ -35,14 +35,14 @@ export const CancelGame = ({gamePDAKey}) => {
             );
             const drainBurnerWalletIx: TransactionInstruction = SystemProgram.transfer({
                 fromPubkey: burnerWallet.publicKey,
-                toPubkey: program.provider.wallet.publicKey,
+                toPubkey: program.provider.publicKey,
                 lamports: balance,
             });
     
             signature = await program.rpc.cancelGame({
                 accounts: {
                     game: gamePDAKey,
-                    initializer: program.provider.wallet.publicKey,
+                    initializer: program.provider.publicKey,
                     systemProgram: anchor.web3.SystemProgram.programId,
                 }, 
                 postInstructions: [
@@ -58,7 +58,7 @@ export const CancelGame = ({gamePDAKey}) => {
             console.log('error', `Transaction failed! ${error?.message}`, signature);
             return;
         }
-        getUserSOLBalance(program.provider.wallet.publicKey, program.provider.connection);
+        getUserSOLBalance(program.provider.publicKey, program.provider.connection);
         getGameList(program);
     }, [wallet, notify, connection]);
 
